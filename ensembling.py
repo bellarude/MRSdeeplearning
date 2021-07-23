@@ -54,28 +54,29 @@ dataset1D_flat = inputConcat1D(dataset1D)
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
 
-# net_names = ['ShallowELU_hp',
-#              # 'ShallowELU_hp2',
-#              # 'ShallowELU_hp3',
-#              # 'ShallowELU_hp4',
-#              'ShallowELU_hp5']
-#
+net_names = ['ShallowELU_hp',
+             'ShallowELU_hp2',
+             'ShallowELU_hp3',
+             'ShallowELU_hp4',
+             'ShallowELU_hp5']
+
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
-# members = list()
-# for i in range(len(net_names)):
-#     checkpoint_path = outpath + folder + net_names[i] + ".best.hdf5"
-#     members.append(model)
-#     members[i].load_weights(checkpoint_path)
+members = list()
+for i in range(len(net_names)):
+    checkpoint_path = outpath + folder + net_names[i] + ".best.hdf5"
+    model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+    model.load_weights(checkpoint_path)
+    members.append(model)
 
-net_name1 = "ShallowELU_hp"
-checkpoint_path1 = outpath + folder + net_name1 + ".best.hdf5"
-model1 = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
-model1.load_weights(checkpoint_path1)
-
-net_name2 = "ShallowELU_hp2"
-checkpoint_path2 = outpath + folder + net_name2 + ".best.hdf5"
-model2 = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
-model2.load_weights(checkpoint_path2)
+# net_name1 = "ShallowELU_hp"
+# checkpoint_path1 = outpath + folder + net_name1 + ".best.hdf5"
+# model1 = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+# model1.load_weights(checkpoint_path1)
+#
+# net_name2 = "ShallowELU_hp2"
+# checkpoint_path2 = outpath + folder + net_name2 + ".best.hdf5"
+# model2 = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+# model2.load_weights(checkpoint_path2)
 
 #source: https://machinelearningmastery.com/stacking-ensemble-for-deep-learning-neural-networks/
 # -----------------------------------------------------------------------------------------------------
@@ -107,7 +108,7 @@ labels_val = ny_val
 labels_test = nlabels
 # -----------------------------------------------------------------------------------------------------
 
-members = [model1, model2]
+# members = [model1, model2]
 
 # define stacked model from multiple member input models
 from keras import layers
@@ -135,8 +136,8 @@ def define_stacked_model(members):
         else:
             merge = concat(merge, ensemble_outputs[i+1])
 
-    hidden = Dense(100, activation='relu')(merge)
-    hidden = Dense(100, activation='relu')(hidden)
+    hidden = Dense(1000, activation='relu')(merge)
+    hidden = Dense(500, activation='relu')(hidden)
     output = Dense(17, activation=None)(hidden)
     stacked_model = Model(inputs=ensemble_visible, outputs=output)
     # plot graph of ensemble
@@ -209,29 +210,57 @@ def evaluate_stacked_model(model, inputX, labelX):
     return model.evaluate(X, labelX, verbose=2)
 
 # make predictions and evaluate
-pred_abs_ensemble = predict_stacked_model(stacked_model, test2D)
-pred_abs_1 = model1.predict(test2D)
-pred_abs_2 = model2.predict(test2D)
+def rel2absPred(p_abs, w_nlabels):
+    # p_abs = model.predict(testset)
+    p_un = ilabelsNorm(p_abs, w_nlabels)
 
-loss1 = model1.evaluate(test2D, labels_test, verbose=2)
-loss2 = model2.evaluate(test2D, labels_test, verbose=2)
-lossE = evaluate_stacked_model(stacked_model, test2D, labels_test)
+    p = np.empty(p_abs.shape)
+    for i in range(17):
+        p[:, i] = p_un[:, i] / p_un[:, 16] * 64.5
+
+    return p
+
+pred = list()
+loss = list()
+for m in range(len(members)):
+    p_abs = members[m].predict(test2D)
+    p = rel2absPred(p_abs, w_nlabels)
+    pred.append(p)
+    loss.append(members[m].evaluate(test2D, labels_test, verbose=2))
+
+p_abs_e = predict_stacked_model(stacked_model, test2D)
+p_e = rel2absPred(p_abs_e, w_nlabels)
+
+pred.append(p_e)
+loss.append(evaluate_stacked_model(stacked_model, test2D, labels_test))
+
+y_test = ilabelsNorm(labels_test, w_nlabels)
+for i in range(17):
+    y_test[:, i] = y_test[:, i] / y_test[:, 16] * 64.5
+
+# pred_abs_ensemble = predict_stacked_model(stacked_model, test2D)
+# pred_abs_1 = model1.predict(test2D)
+# pred_abs_2 = model2.predict(test2D)
+
+# loss1 = model1.evaluate(test2D, labels_test, verbose=2)
+# loss2 = model2.evaluate(test2D, labels_test, verbose=2)
+# lossE = evaluate_stacked_model(stacked_model, test2D, labels_test)
 
 # pred_un = np.empty(pred_abs_1.shape)  # un-normalized absolute concentrations
-pred1 = np.empty(pred_abs_1.shape)  # relative un normalized concentrations (referred to water prediction)
-pred2 = np.empty(pred_abs_1.shape)
-predE = np.empty(pred_abs_1.shape)
-
-pred_un_1 = ilabelsNorm(pred_abs_1, w_nlabels)
-pred_un_2 = ilabelsNorm(pred_abs_2, w_nlabels)
-pred_un_ensemble = ilabelsNorm(pred_abs_ensemble, w_nlabels)
-y_test = ilabelsNorm(labels_test, w_nlabels)
-
-for i in range(17):
-    pred1[:, i] = pred_un_1[:, i] / pred_un_1[:, 16] * 64.5
-    pred2[:, i] = pred_un_2[:, i] / pred_un_2[:, 16] * 64.5
-    predE[:, i] = pred_un_ensemble[:, i] / pred_un_ensemble[:, 16] * 64.5
-    y_test[:, i] = y_test[:, i] / y_test[:, 16] * 64.5
+# pred1 = np.empty(pred_abs_1.shape)  # relative un normalized concentrations (referred to water prediction)
+# pred2 = np.empty(pred_abs_1.shape)
+# predE = np.empty(pred_abs_1.shape)
+#
+# pred_un_1 = ilabelsNorm(pred_abs_1, w_nlabels)
+# pred_un_2 = ilabelsNorm(pred_abs_2, w_nlabels)
+# pred_un_ensemble = ilabelsNorm(pred_abs_ensemble, w_nlabels)
+# y_test = ilabelsNorm(labels_test, w_nlabels)
+#
+# for i in range(17):
+#     pred1[:, i] = pred_un_1[:, i] / pred_un_1[:, 16] * 64.5
+#     pred2[:, i] = pred_un_2[:, i] / pred_un_2[:, 16] * 64.5
+#     predE[:, i] = pred_un_ensemble[:, i] / pred_un_ensemble[:, 16] * 64.5
+#     y_test[:, i] = y_test[:, i] / y_test[:, 16] * 64.5
 
 
 regr = linear_model.LinearRegression()
@@ -262,67 +291,74 @@ def subplotconcentration(index, pred):
 
     return regr.coef_[0], r_sq, mse
 
-cc= np.empty((3,1))
-rr=cc
-mm=cc
+# cc= np.empty((3,1))
+# rr=cc
+# mm=cc
 
-idx = 11
-fig = plt.figure(figsize=(18, 6))
-plt.subplot(3, 3, 1)
-cc[0], rr[0], mm[0] = subplotconcentration(idx, pred1)
-plt.subplot(3, 3, 4)
-cc[1], rr[1], mm[1] = subplotconcentration(idx, pred2)
-plt.subplot(3, 3, 7)
-cc[2], rr[2], mm[2] = subplotconcentration(idx, predE)
-
-plt.subplot(3, 3, 2)
-plt.hist(pred1[:, idx], 20)
-plt.title('PRED distribution')
-plt.subplot(3, 3, 5)
-plt.hist(pred2[:, idx], 20)
-plt.title('PRED distribution')
-plt.subplot(3, 3, 8)
-plt.hist(predE[:, idx], 20)
-plt.title('PRED distribution')
-
-plt.subplot(3, 3, 3)
-plt.hist(y_test[:, idx])
-plt.title('GT distribution')
-plt.subplot(3, 3, 6)
-plt.hist(y_test[:, idx])
-plt.title('GT distribution')
-plt.subplot(3, 3, 9)
-plt.hist(y_test[:, idx])
-plt.title('GT distribution')
+# idx = 11
+# fig = plt.figure(figsize=(18, 6))
+# plt.subplot(3, 3, 1)
+# cc[0], rr[0], mm[0] = subplotconcentration(idx, pred1)
+# plt.subplot(3, 3, 4)
+# cc[1], rr[1], mm[1] = subplotconcentration(idx, pred2)
+# plt.subplot(3, 3, 7)
+# cc[2], rr[2], mm[2] = subplotconcentration(idx, predE)
+#
+# plt.subplot(3, 3, 2)
+# plt.hist(pred1[:, idx], 20)
+# plt.title('PRED distribution')
+# plt.subplot(3, 3, 5)
+# plt.hist(pred2[:, idx], 20)
+# plt.title('PRED distribution')
+# plt.subplot(3, 3, 8)
+# plt.hist(predE[:, idx], 20)
+# plt.title('PRED distribution')
+#
+# plt.subplot(3, 3, 3)
+# plt.hist(y_test[:, idx])
+# plt.title('GT distribution')
+# plt.subplot(3, 3, 6)
+# plt.hist(y_test[:, idx])
+# plt.title('GT distribution')
+# plt.subplot(3, 3, 9)
+# plt.hist(y_test[:, idx])
+# plt.title('GT distribution')
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
 workbook = xlsxwriter.Workbook(outpath + folder + 'ensemble_eval.xlsx')
 worksheet = workbook.add_worksheet()
-for i in range(16):
-    c, r, m = subplotconcentration(i, pred1)
-    s = 'A' + str(i * 3 + 1)
-    worksheet.write(s, c)
-    s = 'A' + str(i * 3 + 2)
-    worksheet.write(s, r)
-    s = 'A' + str(i * 3 + 3)
-    worksheet.write(s, m)
 
-    c, r, m = subplotconcentration(i, pred2)
-    s = 'B' + str(i * 3 + 1)
-    worksheet.write(s, c)
-    s = 'B' + str(i * 3 + 2)
-    worksheet.write(s, r)
-    s = 'B' + str(i * 3 + 3)
-    worksheet.write(s, m)
+for j in range(len(pred)):
+    for i in range(16):
+        c, r, m = subplotconcentration(i, pred[j])
+        # s = 'A' + str(i * 3 + 1)
+        row = i * 3 + 1
+        col = j
+        # worksheet.write(s, c)
+        worksheet.write(row, col, c)
+        # s = 'A' + str(i * 3 + 2)
+        row = i * 3 + 2
+        worksheet.write(row, col, r)
+        # s = 'A' + str(i * 3 + 3)
+        row = i * 3 + 3
+        worksheet.write(row, col, m)
 
-    c, r, m = subplotconcentration(i, predE)
-    s = 'C' + str(i * 3 + 1)
-    worksheet.write(s, c)
-    s = 'C' + str(i * 3 + 2)
-    worksheet.write(s, r)
-    s = 'C' + str(i * 3 + 3)
-    worksheet.write(s, m)
+    # c, r, m = subplotconcentration(i, pred2)
+    # s = 'B' + str(i * 3 + 1)
+    # worksheet.write(s, c)
+    # s = 'B' + str(i * 3 + 2)
+    # worksheet.write(s, r)
+    # s = 'B' + str(i * 3 + 3)
+    # worksheet.write(s, m)
+    #
+    # c, r, m = subplotconcentration(i, predE)
+    # s = 'C' + str(i * 3 + 1)
+    # worksheet.write(s, c)
+    # s = 'C' + str(i * 3 + 2)
+    # worksheet.write(s, r)
+    # s = 'C' + str(i * 3 + 3)
+    # worksheet.write(s, m)
 
 workbook.close()
 print('xlsx SAVED')
