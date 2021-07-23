@@ -42,7 +42,7 @@ dataset2D_flat = inputConcat2D(dataset2D)
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
-net_name = "ShallowELU_hp2"
+net_name = "ShallowELU_hp"
 checkpoint_path = outpath + folder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')

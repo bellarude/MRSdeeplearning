@@ -671,8 +671,8 @@ def newModel(dim, type, subtype):
 
                 lrate = 2e-4
                 # -----------------------------------------------------------------
-    else:
-        print('Model dimensionality of data is wrong')
+    # else:
+    #     print('Model dimensionality of data is wrong')
 
     # --- Create model
     model = Model(inputs=inputs, outputs=outputs)

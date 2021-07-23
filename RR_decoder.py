@@ -39,22 +39,22 @@ y_train, y_val = labelsimport(folder, labelsname)
 ny_train, w_y_train = labelsNorm(y_train)
 ny_val, w_y_val = labelsNorm(y_val)
 
-X_train_rs_flat = inputConcat2D(X_train)
-X_val_rs_flat = inputConcat2D(X_val)
+X_train_flat = inputConcat2D(X_train)
+X_val_flat = inputConcat2D(X_val)
 
-model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU')
+# model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
 
 def training():
     times2train = 1
     outpath = 'C:/Users/Rudy/Desktop/DL_models/'
     folder = "net_type/"
-    net_name = "ShallowELU_hp2"
+    net_name = "ShallowELU_hp5"
 
     from keras.callbacks import ReduceLROnPlateau
 
     tf.debugging.set_log_device_placement(True)
     for i in range(times2train):
-        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU')
+        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
         # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
         checkpoint_path = outpath + folder + net_name + ".best.hdf5"
         checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -66,11 +66,11 @@ def training():
         # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6)
 
         # selected channel 0 to keep only Re(spectrogram)
-        history = model.fit(nX_train_rs, ny_train,
+        history = model.fit(X_train, ny_train,
                               epochs=100,
                               batch_size=50,
                               shuffle=True,
-                              validation_data=(nX_val_rs, ny_val),
+                              validation_data=(X_val, ny_val),
                               validation_freq=1,
                               callbacks=[es, mc],
                               verbose=1)
@@ -82,6 +82,7 @@ def training():
         plt.title('model losses')
         plt.xlabel('epoch')
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        plt.show()
 
 
 training()

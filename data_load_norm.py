@@ -70,7 +70,7 @@ def dataNorm(dataset):
 
 def labelsNorm(labels):
     labels_norm = np.empty(labels.shape)
-    weights = np.empty([labels.shape[0], 1])
+    weights = np.empty([labels.shape[1], 1])
     for i in range(labels.shape[1]):
         w = np.amax(labels[:, i])
         labels_norm[:, i] = labels[:, i] / w
