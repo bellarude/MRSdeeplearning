@@ -306,39 +306,39 @@ def build_model(hp):
         # ResNet_2D_ks
         # -----------------------------------------------------------------
         l1 = ResidualBlock(32, 128, [13, 11, 9], inputs)
-        l2 = ResidualBlock(64, 256, [7, 5, 3], l1)
-        l3 = drop(relu(norm(dense(400, flatten(l2)))), 0.1)
-        outputs = lin(dense(17, l3))
+    l2 = ResidualBlock(64, 256, [7, 5, 3], l1)
+    l3 = drop(relu(norm(dense(400, flatten(l2)))), 0.1)
+    outputs = lin(dense(17, l3))
 
-        # -----------------------------------------------------------------
-        # ResNet_2D
-        # -----------------------------------------------------------------
-        # l1 = ResidualBlock(32, 128, [3,3,3], inputs)
-        # l2 = ResidualBlock(64, 256, [3,3,3],l1)
-        # l3 = drop(relu(norm(dense(400, flatten(l2)))),0.1)
-        # outputs = lin(dense(17, l3))
+    # -----------------------------------------------------------------
+    # ResNet_2D
+    # -----------------------------------------------------------------
+    # l1 = ResidualBlock(32, 128, [3,3,3], inputs)
+    # l2 = ResidualBlock(64, 256, [3,3,3],l1)
+    # l3 = drop(relu(norm(dense(400, flatten(l2)))),0.1)
+    # outputs = lin(dense(17, l3))
 
-        # -----------------------------------------------------------------
-        # ResNet_2D_deep
-        # -----------------------------------------------------------------
-        # l1 = convBlock(8, inputs)
-        # l2 = convBlock(16, l1)
-        # l3 = ResidualBlock(32, 128, [13,11,9], l2)
-        # l4 = ResidualBlock(64, 256, [7,5,3],l3)
-        # l6 = drop(relu(norm(dense(400, flatten(l4)))),0.1)
-        # outputs = lin(dense(17, l6))
+    # -----------------------------------------------------------------
+    # ResNet_2D_deep
+    # -----------------------------------------------------------------
+    # l1 = convBlock(8, inputs)
+    # l2 = convBlock(16, l1)
+    # l3 = ResidualBlock(32, 128, [13,11,9], l2)
+    # l4 = ResidualBlock(64, 256, [7,5,3],l3)
+    # l6 = drop(relu(norm(dense(400, flatten(l4)))),0.1)
+    # outputs = lin(dense(17, l6))
 
-    # --- Create model
-    model = Model(inputs=inputs, outputs=outputs)
+# --- Create model
+model = Model(inputs=inputs, outputs=outputs)
 
-    # --- Compile model
-    model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=lrate),  # 2e-4 as starter
-        loss=tf.keras.losses.MeanSquaredError(),
-        experimental_run_tf_function=False)
+# --- Compile model
+model.compile(
+    optimizer=tf.keras.optimizers.Adam(learning_rate=lrate),  # 2e-4 as starter
+    loss=tf.keras.losses.MeanSquaredError(),
+    experimental_run_tf_function=False)
 
-    # print(model.summary())
-    return model
+# print(model.summary())
+return model
 
 
 
@@ -381,11 +381,11 @@ def build_model(hp):
 
 outpath = 'C:/Users/Rudy/Desktop/Dl_models/dataset_20/'
 tuner = BayesianOptimization(build_model,
-                              objective = 'val_loss', #what u want to track
-                              max_trials = 50, #how many randoms picking do we want to have
-                              executions_per_trial=1, #number of time you train each dynamic version (see details below)
-                              directory=outpath+'BayesianSearch/',
-                              project_name= f"project_{int(time.time())}")
+                          objective = 'val_loss', #what u want to track
+                          max_trials = 50, #how many randoms picking do we want to have
+                          executions_per_trial=1, #number of time you train each dynamic version (see details below)
+                          directory=outpath+'BayesianSearch/',
+                          project_name= f"project_{int(time.time())}")
 
 # NB: executions_per_trial:
 # =1: when you shoot in the dark (you are simply looking  for a model that works at all, that learns)
@@ -395,11 +395,11 @@ tf.debugging.set_log_device_placement(True)
 #os.environ['TF_FORCE_GPU_ALLOW_GROWTH'] = 'true'
 
 es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
-tuner.search(nX_train_rs, ny_train,
+tuner.search(X_train_rs, ny_train,
             epochs=100,
             batch_size=100,
             shuffle=True,
-            validation_data=(nX_val_rs, ny_val),
+            validation_data=(X_val_rs, ny_val),
             validation_freq=1,
             callbacks=[es]
              )
