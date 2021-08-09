@@ -23,40 +23,74 @@ import xlsxwriter
 from sklearn import datasets, linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 
-from data_load_norm import dataimport2D, labelsimport, labelsNorm, ilabelsNorm, inputConcat2D
+from data_load_norm import dataimport2D, labelsimport, labelsNorm, ilabelsNorm, inputConcat2D, dataimport2D_md, labelsimport_md
 from models import newModel
 
+md_input = 1
+flat_input = 0
+resize_input = 0
 
-folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
-dataname = 'dataset_spgram.mat'
-X_train, X_val = dataimport2D(folder, dataname)
+if md_input == 0:
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    dataname = 'dataset_spgram.mat'
+    X_train, X_val = dataimport2D(folder, dataname, 'dataset')
 
-labelsname = 'labels_c.mat'
-y_train, y_val = labelsimport(folder, labelsname)
-# nX_train_rs = dataNorm(X_train_rs)
-# nX_val_rs = dataNorm(X_val_rs)
+    labelsname = 'labels_c.mat'
+    y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
+    # nX_train_rs = dataNorm(X_train_rs)
+    # nX_val_rs = dataNorm(X_val_rs)
+
+else:
+    #Martyna's noisy - denoised - GT dataset
+
+    # pred --> output
+    # datasetX --> output_noisy
+    # labelsY --> output_gt
+
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/'
+    filenames = ['zoomedSpgram_pred_1.mat',
+                 'zoomedSpgram_pred_2.mat',
+                 'zoomedSpgram_pred_3.mat',
+                 'zoomedSpgram_pred_4.mat']
+    keyname = 'output'
+
+    X_train, X_val, X_test = dataimport2D_md(folder, filenames, keyname)
+
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/labels/'
+    filenames = ['labels_c_1.mat',
+                 'labels_c_2.mat',
+                 'labels_c_3.mat',
+                 'labels_c_4.mat']
+    keyname = 'labels_c'
+
+    y_train, y_val, y_test = labelsimport_md(folder, filenames, keyname)
 
 ny_train, w_y_train = labelsNorm(y_train)
 ny_val, w_y_val = labelsNorm(y_val)
 
-X_train_flat = inputConcat2D(X_train)
-X_val_flat = inputConcat2D(X_val)
+if flat_input:
+    X_train_flat = inputConcat2D(X_train)
+    X_val_flat = inputConcat2D(X_val)
 
-# model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+if resize_input:
+    X_train = tf.image.resize(X_train, (224, 224))
+    X_val = tf.image.resize(X_val, (224, 224))
 
 def training():
     times2train = 1
     outpath = 'C:/Users/Rudy/Desktop/DL_models/'
     folder = "net_type/"
-    net_name = "ShallowELU_hp5"
+    net_name = "ShallowInception_fact_v2_md_pred"
 
     from keras.callbacks import ReduceLROnPlateau
 
     tf.debugging.set_log_device_placement(True)
     for i in range(times2train):
-        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
         # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
         checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+
+        # model.load_weights(checkpoint_path)
         checkpoint_dir = os.path.dirname(checkpoint_path)
         mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                              save_weights_only=True, mode='min')

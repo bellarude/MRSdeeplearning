@@ -379,7 +379,7 @@ return model
 #         experimental_run_tf_function=False)
 #     return model
 
-outpath = 'C:/Users/Rudy/Desktop/Dl_models/dataset_20/'
+outpath = 'C:/Users/Rudy/Desktop/Dl_models/BayesianSearch/'
 tuner = BayesianOptimization(build_model,
                           objective = 'val_loss', #what u want to track
                           max_trials = 50, #how many randoms picking do we want to have

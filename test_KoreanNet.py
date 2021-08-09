@@ -29,13 +29,13 @@ def dataimport():
     dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
     # dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/'
 
-    data_import = sio.loadmat(dest_folder + 'spectra_kor_TEST.mat')
-    labels_import = sio.loadmat(dest_folder + 'labels_kor_2_TEST.mat')
+    data_import = sio.loadmat(dest_folder + 'spectra_kor_TEST_wat.mat')
+    labels_import = sio.loadmat(dest_folder + 'labels_kor_5_TEST_NOwat.mat')
     conc_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
     snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
 
     dataset = data_import['spectra_kor']
-    labels = labels_import['labels_kor_2']
+    labels = labels_import['labels_kor_5']
     conc = conc_import['labels_c']*64.5 #mM
     snr_v = snr_v['snr_v']
 
@@ -63,7 +63,8 @@ def dataHighlight(labels, factor):
 
 
 # input image dimensions
-ref2tCr = 1
+ref2tCr = 0
+NOwat = 1
 if ref2tCr:
     datapoints = 1308
 else:
@@ -129,7 +130,7 @@ dropout = lambda x, percentage, size : layers.Dropout(percentage, size)(x)
 kornet = 0
 unet = 1
 
-met = 'gaba'
+met = 'naa'
 if kornet:
     naa_k = [199, 78, 8, 65, 8, 5, 4, 5, 3]
     naa_f = [9, 36, 46, 77, 25, 60, 42, 30, 85]
@@ -266,7 +267,7 @@ ny_test = labels
 
 output_folder = 'C:/Users/Rudy/Desktop/DL_models/'
 subfolder = "net_type/"
-net_name = "UNet_gaba_conv2x"
+net_name = "UNet_mI_NOwat"
 checkpoint_path = output_folder + subfolder + net_name + ".best.hdf5"
 
 modelRR.load_weights(checkpoint_path)
@@ -284,6 +285,7 @@ if met == 'gaba':
         igr = [350, 650]
     else:
         igr = [500,1000]
+        igr = [400, 1000] #without even water
     cidx = 5
     spincorr = 1
 if met == 'naa':
@@ -299,6 +301,8 @@ if met == 'scy':
     cidx = 14
     spincorr = 6
 
+if NOwat:
+    igr = [0, 1405]
 
 if ref2tCr:
     iref = [760, 860]

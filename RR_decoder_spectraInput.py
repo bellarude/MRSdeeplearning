@@ -21,10 +21,10 @@ from models import newModel
 
 folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
 dataname = 'dataset_spectra.mat'
-X_train, X_val = dataimport1D(folder, dataname)
+X_train, X_val = dataimport1D(folder, dataname, 'dataset_spectra')
 
 labelsname = 'labels_c.mat'
-y_train, y_val = labelsimport(folder, labelsname)
+y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
 # nX_train_rs = dataNorm(X_train_rs)
 # nX_val_rs = dataNorm(X_val_rs)
 
@@ -34,22 +34,19 @@ ny_val, w_y_val = labelsNorm(y_val)
 X_train_flat = inputConcat1D(X_train)
 X_val_flat = inputConcat1D(X_val)
 
-model = newModel(dim='1D', type='ResNet', subtype='ResNet_fed')
-
-
 def training():
-  times2train = 1
+  times2train = 3
   outpath = 'C:/Users/Rudy/Desktop/DL_models/'
   folder = "net_type/"
-  net_name = "ResNet_fed"
+  net_name = "ResNet_fed_hp"
 
   from keras.callbacks import ReduceLROnPlateau
 
   tf.debugging.set_log_device_placement(True)
   for i in range(times2train):
-      model = newModel(dim='1D', type='ResNet', subtype='ResNet_fed')
-      # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
-      checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+      model = newModel(dim='1D', type='ResNet', subtype='ResNet_fed_hp')
+      checkpoint_path = outpath + folder + net_name + str(i+3) + ".best.hdf5"
+      # checkpoint_path = outpath + folder + net_name + ".best.hdf5"
       # checkpoint_dir = os.path.dirnamename(checkpoint_path)
       mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                            save_weights_only=True, mode='min')

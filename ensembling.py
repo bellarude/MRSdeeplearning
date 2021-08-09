@@ -23,7 +23,7 @@ import xlsxwriter
 from sklearn import datasets, linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 
-from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat2D, inputConcat1D, dataimport2D, labelsimport
+from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat2D, inputConcat1D, dataimport2D, labelsimport, dataimport1D
 from models import newModel
 
 dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
@@ -58,13 +58,29 @@ net_names = ['ShallowELU_hp',
              'ShallowELU_hp2',
              'ShallowELU_hp3',
              'ShallowELU_hp4',
-             'ShallowELU_hp5']
+             'ShallowELU_hp5',
+             'ResNet_fed_hp',
+             'ResNet_fed_hp2',
+             'ResNet_fed_hp3',
+             'ResNet_fed_hp4',
+             'ResNet_fed_hp5']
+
+model_type = {0: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              1: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              2: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              3: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              4: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              5: ['1D', 'ResNet', 'ResNet_fed_hp'],
+              6: ['1D', 'ResNet', 'ResNet_fed_hp'],
+              7: ['1D', 'ResNet', 'ResNet_fed_hp'],
+              8: ['1D', 'ResNet', 'ResNet_fed_hp'],
+              9: ['1D', 'ResNet', 'ResNet_fed_hp']}
 
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
 members = list()
 for i in range(len(net_names)):
     checkpoint_path = outpath + folder + net_names[i] + ".best.hdf5"
-    model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+    model = newModel(dim=model_type[i][0], type=model_type[i][1], subtype=model_type[i][2])
     model.load_weights(checkpoint_path)
     members.append(model)
 
@@ -92,10 +108,10 @@ for i in range(len(net_names)):
 
 folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
 dataname = 'dataset_spgram.mat'
-X_train, X_val = dataimport2D(folder, dataname)
+X_train, X_val = dataimport2D(folder, dataname, 'dataset')
 
 labelsname = 'labels_c.mat'
-y_train, y_val = labelsimport(folder, labelsname)
+y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
 
 ny_train, w_y_train = labelsNorm(y_train)
 ny_val, w_y_val = labelsNorm(y_val)
@@ -106,6 +122,15 @@ test2D = dataset2D
 labels_train = ny_train
 labels_val = ny_val
 labels_test = nlabels
+
+dataname = 'dataset_spectra.mat'
+X_train, X_val = dataimport1D(folder, dataname, 'dataset_spectra')
+X_train_flat = inputConcat1D(X_train)
+X_val_flat = inputConcat1D(X_val)
+
+train1D = X_train_flat
+val1D = X_val_flat
+test1D = dataset1D_flat
 # -----------------------------------------------------------------------------------------------------
 
 # members = [model1, model2]
@@ -152,6 +177,9 @@ def define_stacked_model(members):
 # define ensemble model
 stacked_model = define_stacked_model(members)
 
+stacked_model.summary()
+
+v = 0
 # fit a stacked model
 def fit_stacked_model(model, train2D, val2D, labels_train, labels_val):
     # prepare input data
@@ -192,9 +220,56 @@ def fit_stacked_model(model, train2D, val2D, labels_train, labels_val):
     plt.xlabel('epoch')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
+def fit_stacked_hybrid_model(model, train2D, val2D, train1D, val1D, labels_train, labels_val):
+    # prepare input data
+    X_train = []
+    X_val = []
+    for i in range(len(model.input)):
+        if model_type[i][0] == '2D':
+            X_train.append(train2D)
+            X_val.append(val2D)
+        else:
+            X_train.append(train1D)
+            X_val.append(val1D)
+
+    # encode output data
+    # inputy_enc = to_categorical(inputy)
+    # fit model
+    # model.fit(X, labels_1, epochs=300, verbose=1)
+    outpath = 'C:/Users/Rudy/Desktop/DL_models/'
+    folder = "net_type/"
+    net_name = "ensemble_hybrid_n2"
+
+    checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+    # checkpoint_dir = os.path.dirname(checkpoint_path)
+    mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
+                         save_weights_only=True, mode='min')
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
+
+    # Reduce learning rate when a metric has stopped improving
+    # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6)
+
+    # selected channel 0 to keep only Re(spectrogram)
+    history = model.fit(X_train, labels_train,
+                        epochs=300,
+                        batch_size=50,
+                        shuffle=True,
+                        validation_data=(X_val, labels_val),
+                        validation_freq=1,
+                        callbacks=[es, mc],
+                        verbose=1)
+
+    fig = plt.figure(figsize=(10, 10))
+    # summarize history for loss
+    plt.plot(history.history['loss'], label='loss')
+    plt.plot(history.history['val_loss'], label='val_loss')
+    plt.title('model losses')
+    plt.xlabel('epoch')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
 # fit stacked model on test dataset
-fit_stacked_model(stacked_model, train2D, val2D, labels_train, labels_val)
+# fit_stacked_model(stacked_model, train2D, val2D, labels_train, labels_val)
+fit_stacked_hybrid_model(stacked_model, train2D, val2D, train1D, val1D, labels_train, labels_val)
 
 # make a prediction with a stacked model
 def predict_stacked_model(model, inputX):
@@ -206,6 +281,30 @@ def predict_stacked_model(model, inputX):
 def evaluate_stacked_model(model, inputX, labelX):
     # prepare input data
     X = [inputX for _ in range(len(model.input))]
+    # make prediction
+    return model.evaluate(X, labelX, verbose=2)
+
+# make a prediction with a stacked model
+def predict_hybrid_stacked_model(model, input2D, input1D):
+    # prepare input data
+    X = []
+    for i in range(len(model.input)):
+        if model_type[i][0] == '2D':
+            X.append(input2D)
+        else:
+            X.append(input1D)
+
+    # make prediction
+    return model.predict(X, verbose=0)
+
+def evaluate_hybrid_stacked_model(model, input2D, input1D, labelX):
+    # prepare input data
+    X = []
+    for i in range(len(model.input)):
+        if model_type[i][0] == '2D':
+            X.append(input2D)
+        else:
+            X.append(input1D)
     # make prediction
     return model.evaluate(X, labelX, verbose=2)
 
@@ -223,16 +322,24 @@ def rel2absPred(p_abs, w_nlabels):
 pred = list()
 loss = list()
 for m in range(len(members)):
-    p_abs = members[m].predict(test2D)
+    if model_type[m][0] == '2D':
+        p_abs = members[m].predict(test2D)
+        loss.append(members[m].evaluate(test2D, labels_test, verbose=2))
+    else:
+        p_abs = members[m].predict(test1D)
+        loss.append(members[m].evaluate(test1D, labels_test, verbose=2))
+
     p = rel2absPred(p_abs, w_nlabels)
     pred.append(p)
-    loss.append(members[m].evaluate(test2D, labels_test, verbose=2))
 
-p_abs_e = predict_stacked_model(stacked_model, test2D)
+
+# p_abs_e = predict_stacked_model(stacked_model, test2D)
+p_abs_e = predict_hybrid_stacked_model(stacked_model, test2D, test1D)
 p_e = rel2absPred(p_abs_e, w_nlabels)
 
 pred.append(p_e)
-loss.append(evaluate_stacked_model(stacked_model, test2D, labels_test))
+# loss.append(evaluate_stacked_model(stacked_model, test2D, labels_test))
+loss.append(evaluate_hybrid_stacked_model(stacked_model, test2D, test1D, labels_test))
 
 y_test = ilabelsNorm(labels_test, w_nlabels)
 for i in range(17):

@@ -8,44 +8,78 @@ import xlsxwriter
 
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
-from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D
+from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsimport_md
 from models import newModel
 
-dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
-def datatestimport():
-    global dataset1D, dataset2D, nlabels, w_nlabels
+md_input = 1
+flat_input = 0
 
-    data_import2D   = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
-    data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
-    labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
+if md_input == 0:
+    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
 
-    dataset2D = data_import2D['output']
-    dataset1D = data_import1D['dataset_spectra']
-    labels  = labels_import['labels_c']*64.5
+    def datatestimport():
+        global dataset1D, dataset2D, nlabels, w_nlabels
 
-    #reshaping
-    dataset1D = np.transpose(dataset1D, (0, 2, 1))
-    labels = np.transpose(labels,(1,0))
+        data_import2D   = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
+        data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
+        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
 
-    # nndataset_rs = dataNorm(ndataset_rs)
-    # nndataset_rs = ndataset_rs
+        dataset2D = data_import2D['output']
+        dataset1D = data_import1D['dataset_spectra']
+        labels  = labels_import['labels_c']*64.5
 
-    nlabels, w_nlabels = labelsNorm(labels)
+        #reshaping
+        dataset1D = np.transpose(dataset1D, (0, 2, 1))
+        labels = np.transpose(labels,(1,0))
 
-    return dataset1D, dataset2D, nlabels, w_nlabels
+        # nndataset_rs = dataNorm(ndataset_rs)
+        # nndataset_rs = ndataset_rs
+
+        nlabels, w_nlabels = labelsNorm(labels)
+
+        return dataset1D, dataset2D, nlabels, w_nlabels
 
 
-datatestimport()
-dataset1D_flat = inputConcat1D(dataset1D)
-dataset2D_flat = inputConcat2D(dataset2D)
+    datatestimport()
+else:
+
+    # pred --> output
+    # datasetX --> output_noisy
+    # labelsY --> output_gt
+
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/'
+    filenames = ['zoomedSpgram_pred_1.mat',
+                 'zoomedSpgram_pred_2.mat',
+                 'zoomedSpgram_pred_3.mat',
+                 'zoomedSpgram_pred_4.mat']
+    keyname = 'output'
+
+    X_train, X_val, X_test = dataimport2D_md(folder, filenames, keyname)
+
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/labels/'
+    filenames = ['labels_c_1.mat',
+                 'labels_c_2.mat',
+                 'labels_c_3.mat',
+                 'labels_c_4.mat']
+    keyname = 'labels_c'
+
+    y_train, y_val, y_test = labelsimport_md(folder, filenames, keyname)
+
+    nlabels, w_nlabels = labelsNorm(y_test)
+    dataset2D = X_test
+
+if flat_input:
+    dataset1D_flat = inputConcat1D(dataset1D)
+    dataset2D_flat = inputConcat2D(dataset2D)
 
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
-net_name = "ShallowELU_hp"
+net_name = "ShallowInception_fact_v2_md_pred"
 checkpoint_path = outpath + folder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
-model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+# model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
 
 model.load_weights(checkpoint_path)
 loss = model.evaluate(dataset2D, nlabels, verbose=2)

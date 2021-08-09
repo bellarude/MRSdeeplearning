@@ -24,9 +24,9 @@ import tensorflow.keras.backend as K
 # from sklearn.metrics import mean_squared_error, r2_score
 
 
-def dataimport2D(folder, filename):
+def dataimport2D(folder, filename, keyname):
     data_import = sio.loadmat(folder + filename)
-    dataset = data_import['dataset']
+    dataset = data_import[keyname]
 
     X_train = dataset[0:18000, :, :, :]
     X_val   = dataset[18000:20000, :, :, :]
@@ -34,9 +34,26 @@ def dataimport2D(folder, filename):
 
     return X_train, X_val
 
-def dataimport1D(folder, filename):
+def dataimport2D_md(folder, filenames, keyname):
+
+    ds = []
+    for i in range(len(filenames)):
+        data_import = sio.loadmat(folder + filenames[i])
+        ds.append(data_import[keyname])
+
+    dataset = np.concatenate((ds[0], ds[1], ds[2], ds[3]), axis=0) * 5500
+
+
+
+    X_train = dataset[0:16000, :, :, :]
+    X_val = dataset[16000:18000, :, :, :]
+    X_test = dataset[18000:20000, :, :, :]  # unused
+
+    return X_train, X_val, X_test
+
+def dataimport1D(folder, filename, keyname):
     data_import = sio.loadmat(folder + filename)
-    dataset = data_import['dataset_spectra']
+    dataset = data_import[keyname]
 
     X_train = dataset[0:18000, :]
     X_val = dataset[18000:20000, :]
@@ -49,14 +66,34 @@ def dataimport1D(folder, filename):
 
     return X_train, X_val
 
-def labelsimport(folder, filename):
+def labelsimport(folder, filename, keyname):
     labels_import = sio.loadmat(folder + filename)
-    labels = labels_import['labels_c'] * 64.5
+    labels = labels_import[keyname] * 64.5
     y_train = labels[0:18000, :]
     y_val = labels[18000:20000, :]
     # y_test = labels[18000:20000, :]
 
     return y_train, y_val
+
+def labelsimport_md(folder, filenames, keyname):
+    ls = []
+    for i in range(len(filenames)):
+        labels_import = sio.loadmat(folder + filenames[i])
+
+        ll = labels_import[keyname]
+        # check up if Martyna gives me only 16 labels (water missing)
+        if ll.shape[0] < 17:
+            ll = np.concatenate((ll, np.ones((1, ll.shape[1]))), axis=0)
+
+        ls.append(np.transpose(ll*64.5, (1,0)))
+
+    labels = np.concatenate((ls[0], ls[1], ls[2], ls[3]), axis=0)
+
+    y_train = labels[0:16000, :]
+    y_val = labels[16000:18000, :]
+    y_test = labels[18000:20000, :]
+
+    return y_train, y_val, y_test
 
 def dataNorm(dataset):
     dataset_norm = np.empty(dataset.shape)

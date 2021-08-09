@@ -15,6 +15,7 @@ def newModel(dim, type, subtype):
     #       deepCNN
     #       ResNet
     #       inceptionNet
+    #       EfficientNet
 
     K.set_image_data_format('channels_last')
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
@@ -169,17 +170,17 @@ def newModel(dim, type, subtype):
                 b11 = convBlock_ks_elu(25, (7,7), inputs)
                 b21 = convBlock_ks_elu(25, (5,5), inputs)
                 b31 = convBlock_ks_elu(25, (3,3), inputs)
-                b1end = maxP(layers.Concatenate(axis=1)([b01, b11, b21, b31]), **poolargs)
+                b1end = maxP(layers.Concatenate(axis=-1)([b01, b11, b21, b31]), **poolargs)
                 b02 = convBlock_ks_elu(50, (9,9), b1end)
                 b12 = convBlock_ks_elu(50, (7,7), b1end)
                 b22 = convBlock_ks_elu(50, (5,5), b1end)
                 b32 = convBlock_ks_elu(50, (3,3), b1end)
-                b2end = sDrop(maxP(layers.Concatenate(axis=1)([b02, b12, b22, b32]), **poolargs), 0.1)
+                b2end = sDrop(maxP(layers.Concatenate(axis=-1)([b02, b12, b22, b32]), **poolargs), 0.1)
                 b03 = convBlock_ks_elu(75, (9,9), b2end)
                 b13 = convBlock_ks_elu(75, (7,7), b2end)
                 b23 = convBlock_ks_elu(75, (5,5), b2end)
                 b33 = convBlock_ks_elu(75, (3,3), b2end)
-                b3end = sDrop(maxP(layers.Concatenate(axis=1)([b03, b13, b23, b33]), **poolargs), 0.2)
+                b3end = sDrop(maxP(layers.Concatenate(axis=-1)([b03, b13, b23, b33]), **poolargs), 0.2)
                 outputs = lin(norm(dense(17, flatten(b3end))))
 
                 lrate = 2e-4
@@ -196,16 +197,16 @@ def newModel(dim, type, subtype):
                 b31 = convBlock_ks_elu(25, (3,3), inputs)
                 b41 = avgP(inputs, **poolargs)
                 b51 = convBlock_ks_elu(25, (1,1), inputs)
-                b1end = maxP(layers.Concatenate(axis=1)([b01, b11, b21, b31, b51]), **poolargs)
-                b1end = layers.Concatenate(axis=1)([b1end, b41])
+                b1end = maxP(layers.Concatenate(axis=-1)([b01, b11, b21, b31, b51]), **poolargs)
+                b1end = layers.Concatenate(axis=-1)([b1end, b41])
                 b02 = convBlock_ks_elu(50, (9,9), b1end)
                 b12 = convBlock_ks_elu(50, (7,7), b1end)
                 b22 = convBlock_ks_elu(50, (5,5), b1end)
                 b32 = convBlock_ks_elu(50, (3,3), b1end)
                 b42 = avgP(b1end, **poolargs)
                 b52 = convBlock_ks_elu(50, (1,1), b1end)
-                b2end = maxP(layers.Concatenate(axis=1)([b02, b12, b22, b32, b52]), **poolargs)
-                b2end = sDrop(layers.Concatenate(axis=1)([b2end, b42]), 0.1)
+                b2end = maxP(layers.Concatenate(axis=-1)([b02, b12, b22, b32, b52]), **poolargs)
+                b2end = sDrop(layers.Concatenate(axis=-1)([b2end, b42]), 0.1)
                 b03 = convBlock_ks_elu(75, (9,9), b2end)
                 b13 = convBlock_ks_elu(75, (7,7), b2end)
                 b23 = convBlock_ks_elu(75, (5,5), b2end)
@@ -216,8 +217,8 @@ def newModel(dim, type, subtype):
                 b73 = convBlock_ks_elu(75, (3,1), b53)
                 b83 = convBlock_ks_elu(75, (1,3), b33)
                 b93 = convBlock_ks_elu(75, (3,1), b33)
-                b3end = maxP(layers.Concatenate(axis=1)([b03, b13, b23, b33, b53, b63, b73, b83, b93]), **poolargs)
-                b3end = sDrop(layers.Concatenate(axis=1)([b3end, b43]), 0.2)
+                b3end = maxP(layers.Concatenate(axis=-1)([b03, b13, b23, b33, b53, b63, b73, b83, b93]), **poolargs)
+                b3end = sDrop(layers.Concatenate(axis=-1)([b3end, b43]), 0.2)
                 outputs = lin(norm(dense(17, flatten(b3end))))
 
                 lrate = 2e-4
@@ -236,7 +237,7 @@ def newModel(dim, type, subtype):
 
                   b2 = maxP(inp, **poolargs)
 
-                  oup = layers.Concatenate(axis=1)([b0, b1, b2])
+                  oup = layers.Concatenate(axis=-1)([b0, b1, b2])
                   return oup
 
                 def redBlock2(inp):
@@ -250,7 +251,7 @@ def newModel(dim, type, subtype):
 
                   b2 = maxP(inp, **poolargs)
 
-                  oup = layers.Concatenate(axis=1)([b0, b1, b2])
+                  oup = layers.Concatenate(axis=-1)([b0, b1, b2])
                   return oup
 
                 b01 = convBlock_ks_elu(25, (9,9), inputs)
@@ -259,14 +260,14 @@ def newModel(dim, type, subtype):
                 b31 = convBlock_ks_elu(25, (3,3), inputs)
                 b41 = avgP(inputs, pool_size = (2,2), strides = (1,1))
                 b51 = convBlock_ks_elu(25, (1,1), inputs)
-                b1end = redBlock1(layers.Concatenate(axis=1)([b01, b11, b21, b31, b41, b51]))
+                b1end = redBlock1(layers.Concatenate(axis=-1)([b01, b11, b21, b31, b41, b51]))
                 b02 = convBlock_ks_elu(50, (9,9), b1end)
                 b12 = convBlock_ks_elu(50, (7,7), b1end)
                 b22 = convBlock_ks_elu(50, (5,5), b1end)
                 b32 = convBlock_ks_elu(50, (3,3), b1end)
                 b42 = avgP(b1end, pool_size = (2,2), strides = (1,1))
                 b52 = convBlock_ks_elu(50, (1,1), b1end)
-                b2end = sDrop(redBlock2(layers.Concatenate(axis=1)([b02, b12, b22, b32, b42, b52])), 0.1)
+                b2end = sDrop(redBlock2(layers.Concatenate(axis=-1)([b02, b12, b22, b32, b42, b52])), 0.1)
                 b03 = convBlock_ks_elu(75, (9,9), b2end)
                 b13 = convBlock_ks_elu(75, (7,7), b2end)
                 b23 = convBlock_ks_elu(75, (5,5), b2end)
@@ -277,7 +278,7 @@ def newModel(dim, type, subtype):
                 b73 = convBlock_ks_elu(75, (3,1), b53)
                 b83 = convBlock_ks_elu(75, (1,3), b33)
                 b93 = convBlock_ks_elu(75, (3,1), b33)
-                b3end = sDrop(avgP(layers.Concatenate(axis=1)([b03, b13, b23, b33, b43, b53, b63, b73, b83, b93]), **poolargs), 0.2)
+                b3end = sDrop(avgP(layers.Concatenate(axis=-1)([b03, b13, b23, b33, b43, b53, b63, b73, b83, b93]), **poolargs), 0.2)
                 last = drop(flatten(b3end), 0.5)
                 outputs = lin(norm(dense(17, last)))
 
@@ -295,21 +296,21 @@ def newModel(dim, type, subtype):
                 b11 = convBlock_ks_elu(25, (1,7), b11)
                 b21 = convBlock_ks_elu(25, (3,3), convBlock_ks_elu(25, (3,3), inputs))
                 b31 = convBlock_ks_elu(25, (3,3), inputs)
-                b1end = maxP(layers.Concatenate(axis=1)([b01, b11, b21, b31]), **poolargs)
+                b1end = maxP(layers.Concatenate(axis=-1)([b01, b11, b21, b31]), **poolargs)
                 b02 = convBlock_ks_elu(50, (9,1), b1end)
                 b02 = convBlock_ks_elu(50, (1,9), b02)
                 b12 = convBlock_ks_elu(50, (7,1), b1end)
                 b12 = convBlock_ks_elu(50, (1,7), b12)
                 b22 = convBlock_ks_elu(50, (3,3), convBlock_ks_elu(50, (3,3), b1end))
                 b32 = convBlock_ks_elu(50, (3,3), b1end)
-                b2end = sDrop(maxP(layers.Concatenate(axis=1)([b02, b12, b22, b32]), **poolargs), 0.1)
+                b2end = sDrop(maxP(layers.Concatenate(axis=-1)([b02, b12, b22, b32]), **poolargs), 0.1)
                 b03 = convBlock_ks_elu(75, (9,1), b2end)
                 b03 = convBlock_ks_elu(75, (1,9), b03)
                 b13 = convBlock_ks_elu(75, (7,1), b2end)
                 b13 = convBlock_ks_elu(75, (1,7), b13)
                 b23 = convBlock_ks_elu(75, (3,3), convBlock_ks_elu(75, (3,3), b2end))
                 b33 = convBlock_ks_elu(75, (3,3), b2end)
-                b3end = sDrop(maxP(layers.Concatenate(axis=1)([b03, b13, b23, b33]), **poolargs), 0.2)
+                b3end = sDrop(maxP(layers.Concatenate(axis=-1)([b03, b13, b23, b33]), **poolargs), 0.2)
                 outputs = lin(norm(dense(17, flatten(b3end))))
 
                 lrate = 2e-4
@@ -326,34 +327,34 @@ def newModel(dim, type, subtype):
                 b11 = convBlock_ks_elu(25, (1,7), b11)
                 b21 = convBlock_ks_elu(25, (3,3), convBlock_ks_elu(25, (3,3), inputs))
                 b31 = convBlock_ks_elu(25, (3,3), inputs)
-                b41 = avgP(inputs)
+                b41 = avgP(inputs, **poolargs)
                 b51 = convBlock_ks_elu(25, (1,1), inputs)
-                b1end = maxP(layers.Concatenate(axis=1)([b01, b11, b21, b31, b51]), **poolargs)
-                b1end = layers.Concatenate(axis=1)([b1end, b41])
+                b1end = maxP(layers.Concatenate(axis=-1)([b01, b11, b21, b31, b51]), **poolargs)
+                b1end = layers.Concatenate(axis=-1)([b1end, b41])
                 b02 = convBlock_ks_elu(50, (9,1), b1end)
                 b02 = convBlock_ks_elu(50, (1,9), b02)
                 b12 = convBlock_ks_elu(50, (7,1), b1end)
                 b12 = convBlock_ks_elu(50, (1,7), b12)
                 b22 = convBlock_ks_elu(50, (3,3), convBlock_ks_elu(50, (3,3), b1end))
                 b32 = convBlock_ks_elu(50, (3,3), b1end)
-                b42 = avgP(b1end)
+                b42 = avgP(b1end, **poolargs)
                 b52 = convBlock_ks_elu(50, (1,1), b1end)
-                b2end = maxP(layers.Concatenate(axis=1)([b02, b12, b22, b32, b52]), **poolargs)
-                b2end = sDrop(layers.Concatenate(axis=1)([b2end, b42]), 0.1)
+                b2end = maxP(layers.Concatenate(axis=-1)([b02, b12, b22, b32, b52]), **poolargs)
+                b2end = sDrop(layers.Concatenate(axis=-1)([b2end, b42]), 0.1)
                 b03 = convBlock_ks_elu(75, (9,1), b2end)
                 b03 = convBlock_ks_elu(75, (1,9), b03)
                 b13 = convBlock_ks_elu(75, (7,1), b2end)
                 b13 = convBlock_ks_elu(75, (1,7), b13)
                 b23 = convBlock_ks_elu(75, (3,3), convBlock_ks_elu(75, (3,3), b2end))
                 b33 = convBlock_ks_elu(75, (3,3), b2end)
-                b43 = avgP(b2end)
+                b43 = avgP(b2end, **poolargs)
                 b53 = convBlock_ks_elu(75, (1,1), b2end)
                 b63 = convBlock_ks_elu(75, (1,3), b53)
                 b73 = convBlock_ks_elu(75, (3,1), b53)
                 b83 = convBlock_ks_elu(75, (1,3), b33)
                 b93 = convBlock_ks_elu(75, (3,1), b33)
-                b3end = maxP(layers.Concatenate(axis=1)([b03, b13, b23, b33, b53, b63, b73, b83, b93]), **poolargs)
-                b3end = sDrop(layers.Concatenate(axis=1)([b3end, b43]), 0.2)
+                b3end = maxP(layers.Concatenate(axis=-1)([b03, b13, b23, b33, b53, b63, b73, b83, b93]), **poolargs)
+                b3end = sDrop(layers.Concatenate(axis=-1)([b3end, b43]), 0.2)
                 outputs = lin(norm(dense(17, flatten(b3end))))
 
                 lrate = 2e-4
@@ -545,6 +546,17 @@ def newModel(dim, type, subtype):
                 lrate = 2e-4
                 print('net type: SrrInception_v2')
 
+        if type == 'EfficientNet':
+            if subtype =='B7':
+
+                IMG_SHAPE = (128, 32, 2)
+                model0 = tf.keras.applications.EfficientNetB7(input_shape=IMG_SHAPE, include_top=False, weights=None)
+                inputs = model0.input
+                outputs = lin(norm(dense(17, flatten(model0.output))))
+
+                lrate = 2e-4
+
+                print('net type: EfficientNetB7')
 
     if dim == '1D':
 
@@ -647,6 +659,21 @@ def newModel(dim, type, subtype):
                 outputs = lin(dense(17, l6))
 
                 lrate = 2e-4
+                # -----------------------------------------------------------------
+
+            if subtype == 'ResNet_fed_hp':
+                # -----------------------------------------------------------------
+                # ResNet_fed_hp
+                # -----------------------------------------------------------------
+                l1 = maxP(convBlock(15, inputs), **poolargs)
+                l2 = maxP(convBlock(40, l1), **poolargs)
+                l3 = ResidualBlock(90, 150, l2)
+                l4 = ResidualBlock(150, 230, l3)
+                l5 = ResidualBlock(140, 600, l4)
+                l6 = drop(relu(normD(dense(110, flatten(l5)))), 0.25)
+                outputs = lin(dense(17, l6))
+
+                lrate = 3.1938e-4
                 # -----------------------------------------------------------------
 
         if type == 'DeepCNN':
