@@ -166,7 +166,7 @@ ny_val = y_val
 # ny_train = dataHighlight(y_train, 10)
 # ny_val = dataHighlight(y_val, 10)
 
-outpath = 'C:/Users/Rudy/Desktop/Dl_models/BayesianSearch/'
+outpath = 'C:/Users/Rudy/Desktop/Dl_models/'
 tuner = BayesianOptimization(build_model,
                           objective = 'val_loss', #what u want to track
                           max_trials = 50, #how many randoms picking do we want to have

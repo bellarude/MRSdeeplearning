@@ -225,24 +225,48 @@ if unet:
     # -----------------------------------------------------------------------------
     # --- Define contracting layers
 
-    l1 = conv1(64, conv1(32, tf.keras.layers.ZeroPadding1D(padding=(pad))(inputs)))
-    l2 = conv1(128, conv1(64, conv2(32, l1)))
-    l3 = conv1(256, conv1(128, conv2(48, l2)))
-    l4 = conv1(512, conv1(256, conv2(64, l3)))
-    l5 = conv1(256, conv1(512, conv2(80, l4)))
+    # l1 = conv1(64, conv1(32, tf.keras.layers.ZeroPadding1D(padding=(pad))(inputs)))
+    # l2 = conv1(128, conv1(64, conv2(32, l1)))
+    # l3 = conv1(256, conv1(128, conv2(48, l2)))
+    # l4 = conv1(512, conv1(256, conv2(64, l3)))
+    # l5 = conv1(256, conv1(512, conv2(80, l4)))
+    #
+    # # --- Define expanding layers
+    # l6 = tran2(256, l5)
+    #
+    # # --- Define expanding layers
+    # l7 = tran2(128, tran1(64, tran1(64, concat(l4, l6))))
+    # l8 = tran2(64, tran1(48, tran1(48, concat(l3, l7))))
+    # l9 = tran2(32, tran1(32, tran1(32, concat(l2, l8))))
+    # l10 = conv1(32, conv1(32, l9))
+    #
+    # # --- Create logits
+    # outputs = tf.keras.layers.Cropping1D(cropping=(pad, pad))(conv(l10, kernel_size=3, filters=1))
+    # lrate = 1e-3
+
+    # -----------------------------------------------------------------------------
+    # RR-Unet 2xconv1 hp(mI)
+    # -----------------------------------------------------------------------------
+    # --- Define contracting layers
+
+    l1 = conv1(160, conv1(80, tf.keras.layers.ZeroPadding1D(padding=(pad))(inputs)))
+    l2 = conv1(220, conv1(110, conv2(80, l1)))
+    l3 = conv1(440, conv1(220, conv2(110, l2)))
+    l4 = conv1(760, conv1(380, conv2(220, l3)))
+    l5 = conv1(1120, conv1(560, conv2(480, l4)))
 
     # --- Define expanding layers
-    l6 = tran2(256, l5)
+    l6 = tran2(480, l5)
 
     # --- Define expanding layers
-    l7 = tran2(128, tran1(64, tran1(64, concat(l4, l6))))
-    l8 = tran2(64, tran1(48, tran1(48, concat(l3, l7))))
-    l9 = tran2(32, tran1(32, tran1(32, concat(l2, l8))))
-    l10 = conv1(32, conv1(32, l9))
+    l7 = tran2(220, tran1(380, tran1(760, concat(l4, l6))))
+    l8 = tran2(110, tran1(220, tran1(440, concat(l3, l7))))
+    l9 = tran2(80, tran1(110, tran1(220, concat(l2, l8))))
+    l10 = conv1(80, conv1(160, l9))
 
     # --- Create logits
     outputs = tf.keras.layers.Cropping1D(cropping=(pad, pad))(conv(l10, kernel_size=3, filters=1))
-    lrate = 1e-3
+    lrate = 6.7e-4
 
 # --- Create model
 modelRR = Model(inputs=inputs, outputs=outputs)
@@ -267,7 +291,7 @@ ny_test = labels
 
 output_folder = 'C:/Users/Rudy/Desktop/DL_models/'
 subfolder = "net_type/"
-net_name = "UNet_mI_NOwat"
+net_name = "UNet_mI_hp_NOwat"
 checkpoint_path = output_folder + subfolder + net_name + ".best.hdf5"
 
 modelRR.load_weights(checkpoint_path)
