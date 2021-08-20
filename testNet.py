@@ -11,7 +11,7 @@ from sklearn.metrics import mean_squared_error
 from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsimport_md
 from models import newModel
 
-md_input = 0
+md_input = 1
 flat_input = 0
 
 if md_input == 0:
@@ -52,16 +52,23 @@ else:
     # datasetX --> output_noisy
     # labelsY --> output_gt
 
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/'
-    filenames = ['zoomedSpgram_pred_1.mat',
-                 'zoomedSpgram_pred_2.mat',
-                 'zoomedSpgram_pred_3.mat',
-                 'zoomedSpgram_pred_4.mat']
-    keyname = 'output'
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/'
+    filenames = ['zoomedSpgram_labelsY_1.mat',
+                 'zoomedSpgram_labelsY_2.mat',
+                 'zoomedSpgram_labelsY_3.mat',
+                 'zoomedSpgram_labelsY_4.mat']
+    keyname = 'output_gt'
 
     X_train, X_val, X_test = dataimport2D_md(folder, filenames, keyname)
 
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/labels/'
+    snr_v = sio.loadmat(folder + 'snr_v')
+    readme_SHIM = sio.loadmat(folder + 'shim_v.mat')
+    snr_v_tot = snr_v['snr_v']
+    shim_v_tot = readme_SHIM['shim_v']
+    snr_v = snr_v_tot[18000:20000, :]
+    shim_v = shim_v_tot[18000:20000, :]
+
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/labels/'
     filenames = ['labels_c_1.mat',
                  'labels_c_2.mat',
                  'labels_c_3.mat',
@@ -69,6 +76,8 @@ else:
     keyname = 'labels_c'
 
     y_train, y_val, y_test = labelsimport_md(folder, filenames, keyname)
+
+
 
     nlabels, w_nlabels = labelsNorm(y_test)
     dataset2D = X_test
@@ -80,7 +89,7 @@ if flat_input:
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
-net_name = "ShallowELU_hp3"
+net_name = "ShallowELU_hp_md_gt"
 checkpoint_path = outpath + folder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
@@ -196,11 +205,11 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     # ----------------------------------------------
 
     ax2 = plt.subplot(gs[2])
-    p1 = ax2.scatter(y_test[:, index], pred[:, index], c=snr_v, cmap='copper', label = 'observation')
+    p1 = ax2.scatter(y_test[:, index], pred[:, index], c=snr_v, cmap='summer', label = 'observation')
     m = np.max(y_test[:, index])
-    ax2.plot(np.arange(0, m, 0.01), lin, color='lightsalmon', linewidth=3)
+    ax2.plot(np.arange(0, m, 0.01), lin, color='tab:olive', linewidth=3)
     ident = [0.0, m]
-    ax2.plot(ident, ident, '--', linewidth=3, color='gold')
+    ax2.plot(ident, ident, '--', linewidth=3, color='k')
     # ax1 = plt.subplot(gs[1])
 
     if outer == None:
@@ -223,7 +232,7 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
 
     ax0 = plt.subplot(gs[0])
     ax0.set_title(met, fontweight="bold")
-    sns.distplot(y_test[:, index], ax=ax0, color='chocolate')
+    sns.distplot(y_test[:, index], ax=ax0, color='tab:olive')
     ax0.set_xlim(-0.250,m+0.250)
     ax0.xaxis.set_visible(False)
     ax0.yaxis.set_visible(False)
@@ -231,7 +240,7 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     ax0.set_xlim(0 - (0.05 * m), m + (0.05 * m))
 
     ax3 = plt.subplot(gs[3])
-    sns.distplot(y, ax=ax3, vertical=True, color='chocolate')
+    sns.distplot(y, ax=ax3, vertical=True, color='tab:olive')
     ax3.set_ylim(mP - (0.05 * MP), MP + (0.05 * MP))
     ax3.xaxis.set_visible(False)
     ax3.yaxis.set_visible(False)
@@ -263,36 +272,71 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     ax1.axis('off')
     # gs.tight_layout()
 
+def blandAltmann_Shim(index, met, outer=None, sharey = 0, sharex = 0):
+    from matplotlib import gridspec
+    from matplotlib.ticker import FormatStrFormatter
+    x = y_test[:, index]
+    diff = pred[:, index] - x
+    shim = shim_v[:,0]
+
+    idx_s = np.argsort(shim)
+    sort = np.sort(shim)
+
+    s_diff = diff[idx_s]
+    std_diff = np.empty((y_test.shape[0], 1))
+    bsize = 125
+
+    nbins = np.int(y_test.shape[0] / bsize)
+
+    m_bin = np.empty((nbins, 1))
+    m_std = np.empty((nbins, 1))
+    vlines = np.empty((nbins, 1))
+    for i in range(nbins):
+        bin = idx_s[i * bsize:((i + 1) * bsize) - 1]
+        std_diff[i * bsize:((i + 1) * bsize)] = np.std(diff[bin])
+
+        m_bin[i] = (np.max(sort[i * bsize:((i + 1) * bsize)]) - np.min(sort[i * bsize:((i + 1) * bsize)])) / 2 + np.min(sort[i * bsize:((i + 1) * bsize)])
+        vlines[i] = np.max(sort[i * bsize:((i + 1) * bsize)])
+        m_std[i] = np.std(diff[bin])
+
+    if outer == None:
+        gs = fig.add_gridspec(2, 1, height_ratios=[1, 3],
+                          wspace=0.05, hspace=0.05)
+    else:
+        gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = outer, height_ratios=[1, 3],
+                                               wspace=0.05, hspace=0.05)
+
+    ax0 = plt.subplot(gs[0])
+    ax0.plot(sort, std_diff[:, 0], 'lightgray', linewidth=0.5)
+    ax0.plot(m_bin[:, 0], m_std[:, 0], 'tab:green')
+    ax0.scatter(m_bin[:, 0], m_std[:, 0], c='tab:green', s=10)
+    for i in np.arange(vlines.shape[0]):
+        ax0.axvline(vlines[i, 0], 0, 1, color='gray', alpha=0.5, linewidth=0.5)
+    ax0.xaxis.set_visible(False)
+    ax0.set_title(met, fontweight="bold")
+
+    mm = np.mean(std_diff[:,0])
+    ax0.set_ylim(mm - 0.8*mm, mm + 0.8*mm)
+
+    ax1 = plt.subplot(gs[1])
+    ax1.scatter(sort, s_diff, c=snr_v, cmap='summer')
+    ax1.plot(sort, np.zeros((len(sort))), 'k--')
 
 
-fig = plt.figure()
-jointregression(0, metnames[0])
+    if outer != None:
+        if sharex:
+            ax1.set_xlabel('shim [Hz]')
+        if sharey:
+            ax0.set_ylabel('$\sigma (\Delta )$ [mM]')
+            ax1.set_ylabel('$\Delta$ [mM]')
+    else:
+        ax1.set_xlabel('shim [Hz]')
+        ax0.set_ylabel('$\sigma (\Delta )$ [mM]')
+        ax1.set_ylabel('$\Delta$ [mM]')
 
-# -------------------------------------------------------------
-# plot regression 2x4
-# -------------------------------------------------------------
-fig = plt.figure(figsize = (40,10))
-
-widths = 2*np.ones(4)
-heights = 2*np.ones(2)
-spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-                          height_ratios=heights)
-
-i=0
-for row in range(2):
-    for col in range(4):
-        ax = fig.add_subplot(spec[row,col])
-        if i == 0:
-            jointregression(i, metnames[i], spec[row,col], sharey=1)
-        elif i == 4:
-            jointregression(i, metnames[i], spec[row,col], sharex=1, sharey=1)
-        elif (i==5) or (i==6) or (i==7):
-            jointregression(i, metnames[i], spec[row, col], sharex=1)
-        else:
-            jointregression(i, metnames[i], spec[row, col])
-
-        i += 1
-
+    ax0.xaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
+    ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
 
 def blandAltmann_SNR(index, met, outer=None, xlabel='noise', sharey = 0, sharex = 0):
     from matplotlib import gridspec
@@ -316,11 +360,20 @@ def blandAltmann_SNR(index, met, outer=None, xlabel='noise', sharey = 0, sharex 
         sort = np.sort(noise_over_gt)
 
     s_diff = diff[idx_s]
-    std_diff = np.empty((2500,1))
-    bsize = 250
-    for i in range(10):
-        bin = idx_s[i*bsize:((i+1)*bsize)-1]
+    std_diff = np.empty((y_test.shape[0],1))
+    bsize = 125
+    nbins = np.int(y_test.shape[0]/bsize)
+
+    m_bin = np.empty((nbins,1))
+    m_std = np.empty((nbins,1))
+    vlines = np.empty((nbins,1))
+    for i in range(nbins):
+        bin = idx_s[i*bsize:((i+1)*bsize)]
+        m_bin[i] = (np.max(sort[i*bsize:((i+1)*bsize)]) - np.min(sort[i*bsize:((i+1)*bsize)]))/2 + np.min(sort[i*bsize:((i+1)*bsize)])
+        vlines[i] = np.max(sort[i*bsize:((i+1)*bsize)])
+        # m_bin[i] = np.mean(sort[i * bsize:((i + 1) * bsize)])
         std_diff[i*bsize:((i+1)*bsize)] = np.std(diff[bin])
+        m_std[i] = np.std(diff[bin])
 
     if outer == None:
         gs = fig.add_gridspec(2, 1, height_ratios=[1, 3],
@@ -330,21 +383,27 @@ def blandAltmann_SNR(index, met, outer=None, xlabel='noise', sharey = 0, sharex 
                                                wspace=0.05, hspace=0.05)
 
     ax0 = plt.subplot(gs[0])
-    ax0.plot(sort, std_diff[:, 0], 'r')
+    ax0.plot(sort, std_diff[:, 0], 'lightgray', linewidth=0.5)
+    ax0.plot(m_bin[:,0], m_std[:,0], 'tab:green')
+    ax0.scatter(m_bin[:, 0], m_std[:, 0], c='tab:green', s=10)
+    for i in np.arange(len(m_bin)):
+        ax0.axvline(vlines[i,0], 0, 1, color='gray', alpha=0.5, linewidth=0.5)
     ax0.xaxis.set_visible(False)
     ax0.set_title(met, fontweight="bold")
 
+
     ax1 = plt.subplot(gs[1])
-    ax1.scatter(sort, s_diff, c=snr_v, cmap='copper')
+    ax1.scatter(sort, s_diff, c=snr_v, cmap='summer')
+    ax1.plot(sort, np.zeros((len(sort))), 'k--')
 
     if outer != None:
         if sharex:
             if xlabel == 'noise':
-                ax1.set_xlabel('noise')
+                ax1.set_xlabel('1/SNR')
             elif xlabel == 'snr':
                 ax1.set_xlabel('SNR')
             else:
-                ax1.set_xlabel('noise/GT')
+                ax1.set_xlabel('1/(SNR*GT)')
         if sharey:
             ax0.set_ylabel('$\sigma (\Delta )$ [mM]')
             ax1.set_ylabel('$\Delta$ [mM]')
@@ -362,117 +421,109 @@ def blandAltmann_SNR(index, met, outer=None, xlabel='noise', sharey = 0, sharex 
     ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
     ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
 
-fig = plt.figure()
-blandAltmann_SNR(3, metnames[3], None, 'noisegt')
-fig = plt.figure()
-blandAltmann_SNR(3, metnames[3], None, 'noise')
-fig = plt.figure()
-blandAltmann_SNR(3, metnames[3], None, 'snr')
+order = [2,0,4,12,7,6,1,8,9,14,10,3,13,15,11,5] # to order metabolites plot from good to bad
 
-def blandAltmann_Shim(index, met, outer=None, sharey = 0, sharex = 0):
-    from matplotlib import gridspec
-    from matplotlib.ticker import FormatStrFormatter
-    x = y_test[:, index]
-    diff = pred[:, index] - x
-    shim = shim_v[:,0]
-
-    idx_s = np.argsort(shim)
-    sort = np.sort(shim)
-
-    s_diff = diff[idx_s]
-    std_diff = np.empty((2500, 1))
-    bsize = 250
-    for i in range(10):
-        bin = idx_s[i * bsize:((i + 1) * bsize) - 1]
-        std_diff[i * bsize:((i + 1) * bsize)] = np.std(diff[bin])
-
-    if outer == None:
-        gs = fig.add_gridspec(2, 1, height_ratios=[1, 3],
-                          wspace=0.05, hspace=0.05)
-    else:
-        gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = outer, height_ratios=[1, 3],
-                                               wspace=0.05, hspace=0.05)
-
-    ax0 = plt.subplot(gs[0])
-    ax0.plot(sort, std_diff[:, 0], 'r')
-    ax0.xaxis.set_visible(False)
-    ax0.set_title(met, fontweight="bold")
-
-    ax1 = plt.subplot(gs[1])
-    ax1.scatter(sort, s_diff, c=snr_v, cmap='copper')
+doSNR = 0
+doShim = 1
 
 
-    if outer != None:
-        if sharex:
-            ax1.set_xlabel('shim [Hz]')
-        if sharey:
-            ax0.set_ylabel('$\sigma (\Delta )$ [mM]')
-            ax1.set_ylabel('$\Delta$ [mM]')
-    else:
-        ax1.set_xlabel('shim [Hz]')
-        ax0.set_ylabel('$\sigma (\Delta )$ [mM]')
-        ax1.set_ylabel('$\Delta$ [mM]')
+# single plots to check
+# fig = plt.figure()
+# jointregression(0, metnames[0])
+# fig = plt.figure()
+# blandAltmann_SNR(3, metnames[3], None, 'noisegt')
 
-    ax0.xaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
-    ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
-    ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
+# fig = plt.figure()
+# blandAltmann_SNR(3, metnames[3], None, 'noise')
+# fig = plt.figure()
+# blandAltmann_SNR(3, metnames[3], None, 'snr')
+# fig = plt.figure()
+# blandAltmann_Shim(3, metnames[3])
 
-fig = plt.figure()
-blandAltmann_Shim(3, metnames[3])
 
 # -------------------------------------------------------------
-# plot 4x2 snr BA
+# plot regression 2x4
 # -------------------------------------------------------------
-fig = plt.figure(figsize = (40,20))
+def plotREGR2x4fromindex(i):
+    fig = plt.figure(figsize = (40,10))
 
-widths = 2*np.ones(4)
-heights = 2*np.ones(2)
-spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-                          height_ratios=heights)
+    widths = 2*np.ones(4)
+    heights = 2*np.ones(2)
+    spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                              height_ratios=heights)
+    for row in range(2):
+        for col in range(4):
+            ax = fig.add_subplot(spec[row,col])
+            if (i==0) or (i==8):
+                jointregression(order[i], metnames[order[i]], spec[row,col], sharey=1)
+            elif (i==4) or (i==12):
+                jointregression(order[i], metnames[order[i]], spec[row,col], sharex=1, sharey=1)
+            elif (i==5) or (i==6) or (i==7) or (i==13) or (i==14) or (i==15):
+                jointregression(order[i], metnames[order[i]], spec[row, col], sharex=1)
+            else:
+                jointregression(order[i], metnames[order[i]], spec[row, col])
 
-i=0
-for row in range(2):
-    for col in range(4):
-        ax = fig.add_subplot(spec[row,col])
+            i += 1
 
-        if i == 0:
-            blandAltmann_SNR(i, metnames[col], outer=spec[row, col], xlabel='noise', sharey=1)
-        elif i == 4:
-            blandAltmann_SNR(i, metnames[col], outer=spec[row, col], xlabel='noise', sharex=1, sharey=1)
-        elif (i==5) or (i==6) or (i==7):
-            blandAltmann_SNR(i, metnames[col], outer=spec[row, col], xlabel='noise', sharex=1)
-        else:
-            blandAltmann_SNR(i, metnames[col], outer=spec[row, col], xlabel='noise')
+plotREGR2x4fromindex(0)
+plotREGR2x4fromindex(8)
 
-        i += 1
 
-# -------------------------------------------------------------
-# plot 4x2 shim BA
-# -------------------------------------------------------------
-fig = plt.figure(figsize = (40,20))
+if doSNR:
+    def plotSNR2x4fromindex(i):
+        fig = plt.figure(figsize = (40,20))
 
-widths = 2*np.ones(4)
-heights = 2*np.ones(2)
-spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-                          height_ratios=heights)
+        widths = 2*np.ones(4)
+        heights = 2*np.ones(2)
+        spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                                  height_ratios=heights)
+        for row in range(2):
+            for col in range(4):
+                ax = fig.add_subplot(spec[row,col])
 
-i=0
-for row in range(2):
-    for col in range(4):
-        ax = fig.add_subplot(spec[row,col])
+                if (i==0) or (i==8):
+                    blandAltmann_SNR(order[i], metnames[order[i]], outer=spec[row, col], xlabel='noise', sharey=1)
+                elif (i == 4) or (i == 12):
+                    blandAltmann_SNR(order[i], metnames[order[i]], outer=spec[row, col], xlabel='noise', sharex=1, sharey=1)
+                elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+                    blandAltmann_SNR(order[i], metnames[order[i]], outer=spec[row, col], xlabel='noise', sharex=1)
+                else:
+                    blandAltmann_SNR(order[i], metnames[order[i]], outer=spec[row, col], xlabel='noise')
 
-        if i == 0:
-            blandAltmann_Shim(i, metnames[col], outer=spec[row, col], sharey=1)
-        elif i == 4:
-            blandAltmann_Shim(i, metnames[col], outer=spec[row, col], sharex=1, sharey=1)
-        elif (i==5) or (i==6) or (i==7):
-            blandAltmann_Shim(i, metnames[col], outer=spec[row, col], sharex=1)
-        else:
-            blandAltmann_Shim(i, metnames[col], outer=spec[row, col])
+                i += 1
 
-        i += 1
+    plotSNR2x4fromindex(0)
+    plotSNR2x4fromindex(8)
 
-fig.figure()
+if doShim:
+    def plotSHIM2x4fromindex(i):
+        fig = plt.figure(figsize = (40,20))
+
+        widths = 2*np.ones(4)
+        heights = 2*np.ones(2)
+        spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                                  height_ratios=heights)
+
+        for row in range(2):
+            for col in range(4):
+                ax = fig.add_subplot(spec[row,col])
+
+                if (i==0) or (i==8):
+                    blandAltmann_Shim(order[i], metnames[order[i]], outer=spec[row, col], sharey=1)
+                elif (i == 4) or (i == 12):
+                    blandAltmann_Shim(order[i], metnames[order[i]], outer=spec[row, col], sharex=1, sharey=1)
+                elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+                    blandAltmann_Shim(order[i], metnames[order[i]], outer=spec[row, col], sharex=1)
+                else:
+                    blandAltmann_Shim(order[i], metnames[order[i]], outer=spec[row, col])
+
+                i += 1
+
+    plotSHIM2x4fromindex(0)
+    plotSHIM2x4fromindex(8)
+
+
+fig = plt.figure()
 workbook = xlsxwriter.Workbook(outpath + folder + '/eval.xlsx')
 worksheet = workbook.add_worksheet()
 for i in range(16):

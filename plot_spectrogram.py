@@ -3,6 +3,7 @@ import numpy as np
 import scipy.io as sio
 from data_load_norm import labelsimport
 import h5py
+from matplotlib.ticker import FormatStrFormatter
 
 def dataimport2D(folder, filename):
     data_import = sio.loadmat(folder + filename)
@@ -16,7 +17,7 @@ def dataimport2D(folder, filename):
 
 def dataimport1D(folder, filename):
     data_import = sio.loadmat(folder + filename)
-    dataset = data_import['dataset_spectra_nw']
+    dataset = data_import['dataset_spectra']
 
     X_train = dataset[0:18000, :]
     X_val = dataset[18000:20000, :]
@@ -24,23 +25,32 @@ def dataimport1D(folder, filename):
 
     return X_train, X_val
 
+def readme_import(folder, filename):
+    data_import = sio.loadmat(folder + filename)
+    readme = data_import['readme']
+    snr = readme['SNR'][0][0]
+    shim = readme["shim"][0][0]
+    mmbgw = readme['w_mmbl'][0][0]
+
+    return snr, shim, mmbgw
 
 folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
-dataname = 'dataset_spectra_nw_TEST.mat'
+dataname = 'dataset_spectra_TEST.mat'
 X_train1d, X_val1d = dataimport1D(folder, dataname)
+snr, shim, mmbgw = readme_import(folder, 'readme_TEST.mat')
 
 dataname = 'dataset_spgram_nw_TEST.mat'
 X_train2d, X_val2d = dataimport2D(folder, dataname)
 
 labelsname = 'labels_c_TEST.mat'
-y_train, y_val = labelsimport(folder, labelsname)
-
+y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
 
 f = h5py.File(folder + 'signals_TEST.mat', 'r')
 signals = f['signals']
 time = signals['time']
 # time.visititems(lambda n,o:print(n, o)) #to print the struct names
-t = time['fid_nowater_shim_mmbl_snr'][()]
+t = time['fid_shim_mmbl_snr'][()]
+
 
 treal = np.empty((4096,2500))
 timag = np.empty((4096,2500))
@@ -93,7 +103,7 @@ fig.get_axes()[1].yaxis.set_visible(False)
 
 fig= plt.figure()
 fig.add_subplot(211)
-plt.plot(np.flip(X_train1d[0,0,:]), 'b')
+plt.plot(np.flip(X_train1d[0,0, 255:785]), 'b')
 fig.get_axes()[0].set_title('Real')
 fig.get_axes()[0].yaxis.set_visible(False)
 fig.get_axes()[0].xaxis.set_visible(False)
@@ -102,6 +112,40 @@ plt.plot(np.flip(X_train1d[0,1,:]), 'r')
 fig.get_axes()[1].yaxis.set_visible(False)
 fig.get_axes()[1].set_title('Imag')
 
+
+# -----
+# plot of multiple spectra with concentrations and other parameters
+# fig = plt.figure()
+fig, ax = plt.subplots(3,3,sharey='row')
+
+n = 0
+for i in range(3):
+    for j in range(3):
+        # ax = fig.add_subplot(3, 3, i+1)
+        ax[i, j].plot(np.flip(X_train1d[n, 0, 200:785]), 'b') # 300 without water, 200 with water !!!
+        # ax.get_axes()[0].set_title('Real')
+        # ax.get_axes()[0].yaxis.set_visible(False)
+        # ax.get_axes()[0].xaxis.set_visible(False)
+        # text
+        # textstr = '\n'.join((
+        #     r'$SNR: %.2f$' % (snr[n,0],),
+        #     r'$SHIM: %.2f$' % (shim[n,0],),
+        #     r'$MMBG_w : %.2f$' % (mmbgw[n,0],)))
+        # props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # ax[i, j].text(0.05, 0.95, textstr, transform=ax[i, j].transAxes, fontsize=10,
+        #          verticalalignment='top', bbox=props)
+        #
+        # textstr = '\n'.join((
+        #     r'$NAA: %.2f$' % (y_train[n,2],),
+        #     r'$tCr: %.2f$' % (y_train[n,4],),
+        #     r'$tCho : %.2f$' % (y_train[n,0],)))
+        # props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+        # ax[i, j].text(0.95, 0.95, textstr, transform=ax[i, j].transAxes, fontsize=10,
+        #         verticalalignment='top', horizontalalignment = 'right', bbox=props)
+        ax[i, j].ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+        ax[i, j].xaxis.set_visible(False)
+
+        n+=1
 
 fig = plt.figure()
 plt.plot(np.linspace(0,1024,1024), np.flip(X_train1d[0,0,:]), 'b', label = 'Real')

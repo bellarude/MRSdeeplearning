@@ -32,6 +32,9 @@ import tensorflow.keras.backend as K
 # model0 = tf.keras.applications.EfficientNetB0(input_shape=IMG_SHAPE, include_top=False, weights=None)
 # outputs = lin(norm(dense(17, flatten(model0.output))))
 
+import time
+
+start = time.time()
 
 
 # tf.keras.utils.plot_model(model0) # to draw and visualize
@@ -45,8 +48,8 @@ flat_input = 0
 
 if md_input == 0:
     folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
-    dataname = 'dataset_spgram.mat'
-    X_train, X_val = dataimport2D(folder, dataname, 'dataset')
+    # dataname = 'dataset_spgram.mat'
+    # X_train, X_val = dataimport2D(folder, dataname, 'dataset')
 
     labelsname = 'labels_c.mat'
     y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
@@ -135,18 +138,35 @@ spectra = spectra_import['spectra']
 # fig.add_subplot(122)
 # plt.hist(wy_val,20)
 
-import smtplib
+# import smtplib
+#
+# def textMe(string):
+#     # needs to abilitate less secure app: https://www.google.com/settings/security/lesssecureapps
+#     content = (string)
+#     mail = smtplib.SMTP('smtp.gmail.com', 587)
+#     mail.ehlo()
+#     mail.starttls()
+#     address = 'rudy.rizzo.tv@gmail.com'
+#     mail.login('amsmdeepmrs@gmail.com', 'amsmdeepmrs20')
+#     mail.sendmail('amsmdeepmrs@gmail.com', address, content)
+#     mail.close()
+#     print(">>> sent E-mail @" + address)
+#
+# textMe('prova finita #2')
 
-def textMe(string):
-    # needs to abilitate less secure app: https://www.google.com/settings/security/lesssecureapps
-    content = (string)
-    mail = smtplib.SMTP('smtp.gmail.com', 587)
-    mail.ehlo()
-    mail.starttls()
-    address = 'rudy.rizzo.tv@gmail.com'
-    mail.login('amsmdeepmrs@gmail.com', 'amsmdeepmrs20')
-    mail.sendmail('amsmdeepmrs@gmail.com', address, content)
-    mail.close()
-    print(">>> sent E-mail @" + address)
 
-textMe('prova finita #2')
+
+end = time.time()
+
+elapsed = end - start
+print('{0:.2f}'.format(elapsed))
+
+i = 2
+
+metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
+            'Tau', 'Water']
+idx = 5
+from util import textMe
+print(str(idx) + '. DONE: UNet-hp ' + metnames[idx] + ' - time: {0:.2f}'.format(elapsed))
+# textMe('ciao')
+textMe(str(idx) + '. DONE UNet-hp ' + metnames[idx] + ', time -> {0:.2f}'.format(elapsed) + "sec")
