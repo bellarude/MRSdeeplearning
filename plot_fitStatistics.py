@@ -14,16 +14,19 @@ from data_load_norm import labelsNorm, ilabelsNorm
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
 
-inputFolder = r'C:\Users\Rudy\Documents\WMD\Project 2 - Deep Learning\FitAidProject+RAWdata\test_dataset_20'
+inputFolder = r'C:\Users\Rudy\Documents\WMD\01_Project 2 - Deep Learning\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
 fileName = r'\fitStatistics.xlsx'
 
 fit = pd.read_excel(inputFolder + fileName, sheet_name= 'area', header=None)
+crlb = pd.read_excel(inputFolder + fileName, sheet_name= 'c_area', header=None)
 orderFit = [15,11,10,0,16,1,2,4,3,6,5,7,9,12,13,14,17]
 ordernames = [2,0,4,12,7,6,1,8,9,14,10,3,13,15,11,5] #to plot them in the order we want
 
 ofit = np.empty((fit.shape[0], fit.shape[1]-1))
+ocrlb = np.empty((fit.shape[0], fit.shape[1]))
 for idx in range(0,len(orderFit)):
     ofit[:, idx] = fit.values[:, orderFit[idx]]/64.5*fit.values[:, 17]
+    ocrlb[:,idx] = crlb.values[:, orderFit[idx]]
 
 dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
 def simulationimport():
@@ -372,3 +375,243 @@ def plotSHIM2x4fromindex(i, labels, pred):
 plotSHIM2x4fromindex(0,  y_test, ofit)
 plotSHIM2x4fromindex(8,  y_test, ofit)
 
+# -------------------------------------------------------------
+# plot CRLB
+# -------------------------------------------------------------
+def crlbeval(index, met, outer=None, sharey = 0, sharex = 0):
+    from matplotlib import gridspec
+    import seaborn as sns
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import matplotlib.patches as mpatches
+    from matplotlib.ticker import FormatStrFormatter
+
+    # fig = plt.figure()
+    if outer == None:
+        gs = fig.add_gridspec(2, 2, width_ratios=[3, 1], height_ratios=[1, 3],
+                                               wspace=0.05, hspace=0.05)
+    else:
+        gs = gridspec.GridSpecFromSubplotSpec(2, 2, subplot_spec = outer, width_ratios=[3, 1], height_ratios=[1, 3],
+                                               wspace=0.05, hspace=0.05)
+
+    minX = np.min(ofit[:, index])
+    maxX = np.max(ofit[:, index])
+    minY = np.min(ocrlb[:, index])
+    maxY = np.max(ocrlb[:, index])
+
+    ax2 = plt.subplot(gs[2])
+    ax2.set_xlim(minX - (0.05 * maxX), maxX + (0.05 * maxX))
+    ax2.set_ylim(minY - (0.05 * maxY), maxY + (0.05 * maxY))
+    p1 = ax2.scatter(ofit[:,index], ocrlb[:, index], c=snr_v, cmap='summer', label = 'observation')
+
+    if outer == None:
+        cbaxes = inset_axes(ax2, width="30%", height="3%", loc=2)
+        plt.colorbar(p1 ,cax=cbaxes, orientation ='horizontal')
+
+    if outer != None:
+        if sharex :
+            ax2.set_xlabel('Predicted Concentration [mM]')
+        if sharey:
+            ax2.set_ylabel('Absolute CRLB [mM]')
+
+    ax0 = plt.subplot(gs[0])
+    ax0.set_title(met, fontweight="bold")
+    sns.distplot(ofit[:,index], ax=ax0, color='tab:olive')
+    ax0.set_xlim(minX - (0.05 * maxX), maxX + (0.05 * maxX))
+    ax0.xaxis.set_visible(False)
+    ax0.yaxis.set_visible(False)
+    ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+
+    ax3 = plt.subplot(gs[3])
+    sns.distplot(ocrlb[:, index], ax=ax3, vertical=True, color='tab:olive')
+    ax3.set_ylim(minY - (0.05 * maxY), maxY + (0.05 * maxY))
+    ax3.xaxis.set_visible(False)
+    ax3.yaxis.set_visible(False)
+    ax3.xaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    # ax3.hist(y, bins=20, orientation =u'horizontal')
+
+    # text
+    # textstr = '\n'.join((
+    #     r'$a=%.2f$' % (regr.coef_[0],),
+    #     r'$q=%.2f$' % (regr.intercept_,),
+    #     r'$R^{2}=%.2f$' % (r_sq,),
+    #     r'$\sigma=%.2f$' % (np.sqrt(mse),)))
+    # ax1 = plt.subplot(gs[1])
+    # props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    #
+    # patch_t1 = mpatches.Patch(facecolor='w', label=r'$a=%.3f$' % (regr.coef_[0],))
+    # patch_t2 = mpatches.Patch(facecolor='w', label=r'$q=%.3f$' % (regr.intercept_,))
+    # patch_t3 = mpatches.Patch(facecolor='w', label=r'$R^{2}=%.3f$' % (r_sq,))
+    # patch_t4 = mpatches.Patch(facecolor='w', label=r'$std.=%.3f$ [mM]' % (np.sqrt(mse),))
+    # patch2 = mpatches.Patch(facecolor='tab:red', label='$y=ax+q$', linestyle='-')
+    # patch3 = mpatches.Patch(facecolor='k', label = '$y=x$', linestyle='--')
+    # patch4 = mpatches.Patch(facecolor = 'tab:orange', label = '$y=\pm std. \dot x$', linestyle='-')
+
+    # ax1.legend(handles = [p1, patch2, patch3, patch4, patch_t1, patch_t2, patch_t3, patch_t4],bbox_to_anchor=(0.5, 0.3, 0.5, 0.5))
+
+    # ax1.axis('off')
+    # gs.tight_layout()
+
+def plotCRLBfromindex(i):
+    fig = plt.figure(figsize=(40, 20))
+
+    widths = 2 * np.ones(4)
+    heights = 2 * np.ones(2)
+    spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                            height_ratios=heights)
+
+    for row in range(2):
+        for col in range(4):
+            ax = fig.add_subplot(spec[row, col])
+
+            if (i == 0) or (i == 8):
+                crlbeval(ordernames[i], metnames[ordernames[i]], outer=spec[row, col], sharey=1)
+            elif (i == 4) or (i == 12):
+                crlbeval(ordernames[i], metnames[ordernames[i]], outer=spec[row, col], sharex=1, sharey=1)
+            elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+                crlbeval(ordernames[i], metnames[ordernames[i]], outer=spec[row, col], sharex=1)
+            else:
+                crlbeval(ordernames[i], metnames[ordernames[i]], outer=spec[row, col])
+
+            i += 1
+
+plotCRLBfromindex(0)
+
+#-------------------------------------------------------------
+# plot CRLB w/ 4 histograms
+# -------------------------------------------------------------
+def crlbeval3hist(index, met, outer=None, sharey = 0, sharex = 0):
+    from matplotlib import gridspec
+    import seaborn as sns
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import scipy.stats as st
+    import matplotlib.patches as mpatches
+    from matplotlib.ticker import FormatStrFormatter
+
+    # fig = plt.figure()
+    if outer == None:
+        gs = fig.add_gridspec(2, 4, width_ratios=[3, 1, 1, 1], height_ratios=[1, 3],
+                                               wspace=0.05, hspace=0.05)
+    else:
+        gs = gridspec.GridSpecFromSubplotSpec(2, 4, subplot_spec = outer, width_ratios=[3, 1, 1, 1], height_ratios=[1, 3],
+                                               wspace=0.05, hspace=0.05)
+
+    minX = np.min(ofit[:, index])
+    maxX = np.max(ofit[:, index])
+    minY = np.min(ocrlb[:, index])
+    maxY = np.max(ocrlb[:, index])
+
+    ax2 = plt.subplot(gs[4])
+    ax2.set_xlim(minX - (0.05 * maxX), maxX + (0.05 * maxX))
+    ax2.set_ylim(minY - (0.05 * maxY), maxY + (0.05 * maxY))
+    p1 = ax2.scatter(ofit[:,index], ocrlb[:, index], c=snr_v, cmap='summer', label = 'observation')
+
+    if outer == None:
+        cbaxes = inset_axes(ax2, width="30%", height="3%", loc=2)
+        plt.colorbar(p1 ,cax=cbaxes, orientation ='horizontal')
+
+    if outer != None:
+        if sharex :
+            ax2.set_xlabel('Estimated Concentration [mM]')
+        if sharey:
+            ax2.set_ylabel('Absolute CRLB [mM]')
+
+    ax0 = plt.subplot(gs[0])
+    ax0.set_title(met, fontweight="bold")
+    sns.distplot(ofit[:,index], ax=ax0, color='tab:olive')
+    ax0.set_xlim(minX - (0.05 * maxX), maxX + (0.05 * maxX))
+    ax0.xaxis.set_visible(False)
+    ax0.yaxis.set_visible(False)
+    ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+
+    snr1idx = np.nonzero(snr_v[:, 0] < 16.7)
+    snr2idx = np.nonzero((snr_v[:, 0] >= 16.7) & (snr_v[:, 0] < 28.4))
+    snr3idx = np.nonzero(snr_v[:, 0] >= 28.4)
+
+    ocrlb_1 = ocrlb[snr1idx[0], index]
+    y, x = np.histogram(ocrlb_1, 50)
+    mcrlb_1 = x[np.argmax(y)]
+    mu_crlb_1 = np.mean(ocrlb_1)
+
+    ocrlb_2 = ocrlb[snr2idx[0], index]
+    y, x = np.histogram(ocrlb_2, 50)
+    mcrlb_2 = x[np.argmax(y)]
+
+    ocrlb_3 = ocrlb[snr3idx[0], index]
+    y, x = np.histogram(ocrlb_3, 50)
+    mcrlb_3 = x[np.argmax(y)]
+
+    textstr = '\n'.join((
+        r'$\mu:%.2f$' % (mu_crlb_1),
+        r'$Mo:%.2f$' % (mcrlb_1,)))
+
+    ax3 = plt.subplot(gs[5])
+    sns.distplot(ocrlb_1, ax=ax3, vertical=True, color='darkgreen')
+    ax3.axhline(mcrlb_1, 0, 1, color='k', alpha=0.5, ls='--')
+    ax3.axhline(mu_crlb_1, 0, 1, color='gray', alpha=0.5, ls='--')
+    ax3.set_ylim(minY - (0.05 * maxY), maxY + (0.05 * maxY))
+    # ax3.xaxis.set_visible(False)
+    ax3.yaxis.set_visible(False)
+    ax3.xaxis.set_major_formatter(FormatStrFormatter('%0.0f'))
+    for i, label in enumerate(ax3.axes.get_xticklabels()):
+        if i < len(ax3.axes.get_xticklabels()) - 1:
+            label.set_visible(False)
+    ax3.axes.set_xlabel(textstr)
+    ax3.xaxis.set_label_position('top')
+
+    ax4 = plt.subplot(gs[6])
+    sns.distplot(ocrlb_2, ax=ax4, vertical=True, color='limegreen')
+    ax4.set_ylim(minY - (0.05 * maxY), maxY + (0.05 * maxY))
+    ax4.axhline(mcrlb_2, 0, 1, color='k', alpha=0.5, ls='--')
+    # ax4.xaxis.set_visible(False)
+    ax4.yaxis.set_visible(False)
+    ax4.xaxis.set_major_formatter(FormatStrFormatter('%0.0f'))
+    for i, label in enumerate(ax4.axes.get_xticklabels()):
+        if i < len(ax4.axes.get_xticklabels()) - 1:
+            label.set_visible(False)
+    ax4.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_2 )
+    ax4.xaxis.set_label_position('top')
+
+    ax5 = plt.subplot(gs[7])
+    sns.distplot(ocrlb_3, ax=ax5, vertical=True, color='lawngreen')
+    ax5.set_ylim(minY - (0.05 * maxY), maxY + (0.05 * maxY))
+    ax5.axhline(mcrlb_3, 0, 1, color='k', alpha=0.5, ls='--')
+    # ax5.xaxis.set_visible(False)
+    ax5.yaxis.set_visible(False)
+    ax5.xaxis.set_major_formatter(FormatStrFormatter('%0.0f'))
+    for i, label in enumerate(ax5.axes.get_xticklabels()):
+        if i < len(ax5.axes.get_xticklabels()) - 1:
+            label.set_visible(False)
+    ax5.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_3 )
+    ax5.xaxis.set_label_position('top')
+
+def plotCRLB3histfromindex(i):
+    fig = plt.figure(figsize=(25, 10))
+
+    widths = 2 * np.ones(3)
+    heights = 2 * np.ones(2)
+    spec = fig.add_gridspec(ncols=3, nrows=2, width_ratios=widths,
+                            height_ratios=heights)
+
+    for row in range(2):
+        for col in range(3):
+            ax = fig.add_subplot(spec[row, col])
+
+            if (i == 0) or (i == 6) or (i==12):
+                crlbeval3hist(ordernames[i], metnames[ordernames[i]], outer=spec[row, col], sharey=1)
+            elif (i == 3) or (i == 9) or (i == 15):
+                crlbeval3hist(ordernames[i], metnames[ordernames[i]], outer=spec[row, col], sharex=1, sharey=1)
+            elif (i == 4) or (i == 5) or (i == 10) or (i == 11) or (i == 16) or (i == 17):
+                crlbeval3hist(ordernames[i], metnames[ordernames[i]], outer=spec[row, col], sharex=1)
+            else:
+                crlbeval3hist(ordernames[i], metnames[ordernames[i]], outer=spec[row, col])
+
+            i += 1
+
+plotCRLB3histfromindex(0)
+plotCRLB3histfromindex(6)
+plotCRLB3histfromindex(12)
+
+fig = plt.figure()
+crlbeval3hist(0, metnames[0])
