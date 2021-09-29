@@ -167,7 +167,7 @@ metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'G
 
 order = [8, 10, 1, 11, 12, 2, 13, 14, 15, 4, 16, 9, 5, 17, 3, 6, 7]
 
-for idx in range(1, len(metnames)):
+for idx in range(15, len(metnames)):
     start = time.time()
     dataimport(order[idx])
 

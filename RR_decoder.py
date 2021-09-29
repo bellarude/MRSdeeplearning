@@ -18,6 +18,7 @@ from kerastuner import HyperModel, HyperParameters, RandomSearch
 from kerastuner.tuners import BayesianOptimization
 
 import time
+from util import textMe
 import xlsxwriter
 
 from sklearn import datasets, linear_model
@@ -26,12 +27,12 @@ from sklearn.metrics import mean_squared_error, r2_score
 from data_load_norm import dataimport2D, labelsimport, labelsNorm, ilabelsNorm, inputConcat2D, dataimport2D_md, labelsimport_md
 from models import newModel
 
-md_input = 1
+md_input = 0
 flat_input = 0
 resize_input = 0
 
 if md_input == 0:
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_26/'
     dataname = 'dataset_spgram.mat'
     X_train, X_val = dataimport2D(folder, dataname, 'dataset')
 
@@ -69,26 +70,29 @@ ny_train, w_y_train = labelsNorm(y_train)
 ny_val, w_y_val = labelsNorm(y_val)
 
 if flat_input:
-    X_train_flat = inputConcat2D(X_train)
-    X_val_flat = inputConcat2D(X_val)
+    X_train = inputConcat2D(X_train)
+    X_val = inputConcat2D(X_val)
 
 if resize_input:
     X_train = tf.image.resize(X_train, (224, 224))
     X_val = tf.image.resize(X_val, (224, 224))
 
 def training():
-    times2train = 1
+    times2train = 10
     outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-    folder = "net_type/"
-    net_name = "ShallowInception_fact_v2_md_pred"
+    folder = "active_learning/"
+    subfolder = ""
+    net_name = "ShallowNet-2D2c-hp-d26"
 
     from keras.callbacks import ReduceLROnPlateau
 
     tf.debugging.set_log_device_placement(True)
     for i in range(times2train):
-        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
+        start = time.time()
+
+        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
         # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
-        checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+        checkpoint_path = outpath + folder + subfolder + net_name + "-" + str(i) + ".best.hdf5"
 
         # model.load_weights(checkpoint_path)
         checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -101,7 +105,7 @@ def training():
 
         # selected channel 0 to keep only Re(spectrogram)
         history = model.fit(X_train, ny_train,
-                              epochs=100,
+                              epochs=200,
                               batch_size=50,
                               shuffle=True,
                               validation_data=(X_val, ny_val),
@@ -116,7 +120,15 @@ def training():
         plt.title('model losses')
         plt.xlabel('epoch')
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-        plt.show()
+
+        end = time.time()
+        elapsedtime = (end - start) / 3600  # in hours
+
+        textMe(str(i) + '. training DONE, time -> ' + '{0:.2f}'.format(elapsedtime) + 'h, val loss->' + '{0:.5f}'.format(history.history['val_loss'][-1]) + ', epochs->' + '{0:.0f}'.format(len(history.epoch)))
+
+        # otherwise times2trainit stops the loop ove
+        if times2train == 1:
+            plt.show()
 
 
 training()

@@ -25,11 +25,15 @@ import tensorflow.keras.backend as K
 
 
 def dataimport2D(folder, filename, keyname):
+
+    # dataset20: 18000 training, 2000 validation
+    # dataset24, 25, 26,27,30: 20000 training, 5000 validation
+    # dataset29 and 32: 35 training, 5000 validation
     data_import = sio.loadmat(folder + filename)
     dataset = data_import[keyname]
 
-    X_train = dataset[0:18000, :, :, :]
-    X_val   = dataset[18000:20000, :, :, :]
+    X_train = dataset[0:20000, :, :, :]
+    X_val   = dataset[20000:25000, :, :, :]
     # X_test  = dataset[18000:20000, :, :, :]
 
     return X_train, X_val
@@ -69,8 +73,8 @@ def dataimport1D(folder, filename, keyname):
 def labelsimport(folder, filename, keyname):
     labels_import = sio.loadmat(folder + filename)
     labels = labels_import[keyname] * 64.5
-    y_train = labels[0:18000, :]
-    y_val = labels[18000:20000, :]
+    y_train = labels[0:20000, :]
+    y_val = labels[20000:25000, :]
     # y_test = labels[18000:20000, :]
 
     return y_train, y_val

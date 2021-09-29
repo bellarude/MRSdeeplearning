@@ -11,31 +11,34 @@ from sklearn.metrics import mean_squared_error
 from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsimport_md
 from models import newModel
 
-md_input = 1
-flat_input = 0
+md_input = 0
+flat_input = 1
 
 if md_input == 0:
-    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    # dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
 
     def datatestimport():
         global dataset1D, dataset2D, nlabels, w_nlabels, snr_v, shim_v
 
         data_import2D   = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
-        data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
+        # data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
         labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
         snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
         readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
 
 
         dataset2D = data_import2D['output']
-        dataset1D = data_import1D['dataset_spectra']
+        # dataset1D = data_import1D['dataset_spectra']
         labels  = labels_import['labels_c']*64.5
         snr_v = snr_v['snr_v']
         shim_v = readme_SHIM['shim_v']
 
         #reshaping
-        dataset1D = np.transpose(dataset1D, (0, 2, 1))
-        labels = np.transpose(labels,(1,0))
+        # dataset1D = np.transpose(dataset1D, (0, 2, 1))
+        # dataset1D = inputConcat1D(dataset1D)
+        dataset1D = []
+        # labels = np.transpose(labels,(1,0))
 
         # nndataset_rs = dataNorm(ndataset_rs)
         # nndataset_rs = ndataset_rs
@@ -83,16 +86,16 @@ else:
     dataset2D = X_test
 
 if flat_input:
-    dataset1D_flat = inputConcat1D(dataset1D)
     dataset2D_flat = inputConcat2D(dataset2D)
 
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-folder = "net_type/"
-net_name = "ShallowELU_hp_md_gt"
-checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+folder = "water_reference/" #"net_type/"
+subfolder = "" #"typology/"
+net_name = "RRdecoder_ESMRMB1_d31_0"
+checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
-model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU')
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
 
 model.load_weights(checkpoint_path)
@@ -114,68 +117,6 @@ regr = linear_model.LinearRegression()
 
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
-
-
-def subplotconcentration(index):
-    # ----------------------------------------------
-    x = y_test[:, index].reshape(-1, 1)
-    y = pred[:, index]
-    regr.fit(x, y)
-    lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
-    mse = mean_squared_error(x, y)
-    r_sq = regr.score(x, y)
-
-    # ----------------------------------------------
-    plt.scatter(y_test[:, index], pred[:, index], c=snr_v)
-    m = np.max(y_test[:, index])
-    plt.plot(np.arange(0, m, 0.01), lin, linewidth=3)
-    plt.plot(np.arange(0, m, 0.01), lin - np.sqrt(mse), linewidth=2)
-    plt.plot(np.arange(0, m, 0.01), lin + np.sqrt(mse), linewidth=2)
-    ident = [0.0, m]
-    plt.plot(ident, ident, '--', linewidth=3, color='k')
-
-    plt.title(metnames[index] + r' - Coeff: ' + str(np.round(regr.coef_, 3)) + ' - $R^2$: ' + str(
-        np.round(r_sq, 3)) + ' - mse: ' + str(np.round(mse, 3)) + ' - std: ' + str(
-        np.round(np.sqrt(mse), 3))), plt.xlabel('GT'), plt.ylabel('estimates')
-
-    return regr.coef_[0], r_sq, mse
-
-# cc_array = []
-# for i in range(17):
-#     # plt.subplot(16,1,i+1)
-#     fig = plt.figure(figsize=(18, 6))
-#     plt.subplot(1, 3, 1)
-#     cc, rr, mm = subplotconcentration(i)
-#     cc_array += [cc]
-#     plt.subplot(1, 3, 2)
-#     plt.hist(pred[:, i], 20)
-#     plt.title('PRED distribution')
-#     plt.subplot(1, 3, 3)
-#     plt.hist(y_test[:, i])
-#     plt.title('GT distribution')
-
-    #filename = '/content/drive/My Drive/RR/nets models/met_{0}.png'
-    #filename = filename.format(i)
-    #plt.savefig(filename)
-    # plt.show()
-
-
-# -------------------------------------------------------------
-# plot regression 4x4
-# -------------------------------------------------------------
-fig = plt.figure(figsize = (12,12))
-
-widths = 2*np.ones(4)
-heights = 2*np.ones(4)
-spec = fig.add_gridspec(ncols=4, nrows=4, width_ratios=widths,
-                          height_ratios=heights)
-
-i=0
-for row in range(4):
-    for col in range(4):
-        ax = fig.add_subplot(spec[row,col])
-        subplotconcentration(i)
-        i += 1
 
 # -------------------------------------------------------------
 # plot joint distribution of regression
@@ -319,7 +260,7 @@ def blandAltmann_Shim(index, met, outer=None, sharey = 0, sharex = 0):
     ax0.set_ylim(mm - 0.8*mm, mm + 0.8*mm)
 
     ax1 = plt.subplot(gs[1])
-    ax1.scatter(sort, s_diff, c=snr_v, cmap='summer')
+    ax1.scatter(sort, s_diff, c=snr_v[idx_s], cmap='summer')
     ax1.plot(sort, np.zeros((len(sort))), 'k--')
 
 
@@ -393,7 +334,7 @@ def blandAltmann_SNR(index, met, outer=None, xlabel='noise', sharey = 0, sharex 
 
 
     ax1 = plt.subplot(gs[1])
-    ax1.scatter(sort, s_diff, c=snr_v, cmap='summer')
+    ax1.scatter(sort, s_diff, c=snr_v[idx_s], cmap='summer')
     ax1.plot(sort, np.zeros((len(sort))), 'k--')
 
     if outer != None:
@@ -423,7 +364,7 @@ def blandAltmann_SNR(index, met, outer=None, xlabel='noise', sharey = 0, sharex 
 
 order = [2,0,4,12,7,6,1,8,9,14,10,3,13,15,11,5] # to order metabolites plot from good to bad
 
-doSNR = 0
+doSNR = 1
 doShim = 1
 
 
@@ -464,7 +405,29 @@ def plotREGR2x4fromindex(i):
                 jointregression(order[i], metnames[order[i]], spec[row, col])
 
             i += 1
+#
+# def plotREGR_paper_fromindex(i):
+#     fig = plt.figure(figsize = (10,40))
+#
+#     widths = 2*np.ones(3)
+#     heights = 2*np.ones(4)
+#     spec = fig.add_gridspec(ncols=3, nrows=4, width_ratios=widths,
+#                               height_ratios=heights)
+#     for row in range(4):
+#         for col in range(3):
+#             ax = fig.add_subplot(spec[row,col])
+#             if (i==0) or (i==8):
+#                 jointregression(order[i], metnames[order[i]], spec[row,col], sharey=1)
+#             elif (i==4) or (i==12):
+#                 jointregression(order[i], metnames[order[i]], spec[row,col], sharex=1, sharey=1)
+#             elif (i==5) or (i==6) or (i==7) or (i==13) or (i==14) or (i==15):
+#                 jointregression(order[i], metnames[order[i]], spec[row, col], sharex=1)
+#             else:
+#                 jointregression(order[i], metnames[order[i]], spec[row, col])
+#
+#             i += 1
 
+# plotREGR_paper_fromindex(0)
 plotREGR2x4fromindex(0)
 plotREGR2x4fromindex(8)
 
@@ -523,17 +486,31 @@ if doShim:
     plotSHIM2x4fromindex(8)
 
 
-fig = plt.figure()
-workbook = xlsxwriter.Workbook(outpath + folder + '/eval.xlsx')
+
+def scores(index):
+    # ----------------------------------------------
+    x = y_test[:, index].reshape(-1, 1)
+    y = pred[:, index]
+    regr.fit(x, y)
+    lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
+    mse = mean_squared_error(x, y)
+    r_sq = regr.score(x, y)
+
+    return regr.coef_[0], regr.intercept_, r_sq, mse
+
+excelname = '/' + net_name + '_eval.xlsx'
+workbook = xlsxwriter.Workbook(outpath + folder + subfolder + excelname)
 worksheet = workbook.add_worksheet()
 for i in range(16):
-    c, r, m = subplotconcentration(i)
-    s = 'A' + str(i * 3 + 1)
-    worksheet.write(s, c)
-    s = 'A' + str(i * 3 + 2)
-    worksheet.write(s, r)
-    s = 'A' + str(i * 3 + 3)
-    worksheet.write(s, m)
+    a, q, r2, mse = scores(i)
+    s = 'A' + str(i * 4 + 1)
+    worksheet.write(s, a)
+    s = 'A' + str(i * 4 + 2)
+    worksheet.write(s, q)
+    s = 'A' + str(i * 4 + 3)
+    worksheet.write(s, r2)
+    s = 'A' + str(i * 4 + 4)
+    worksheet.write(s, mse)
 
 workbook.close()
 print('xlsx SAVED')

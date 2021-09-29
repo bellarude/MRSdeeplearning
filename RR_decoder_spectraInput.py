@@ -35,18 +35,19 @@ X_train_flat = inputConcat1D(X_train)
 X_val_flat = inputConcat1D(X_val)
 
 def training():
-  times2train = 3
+  times2train = 1
   outpath = 'C:/Users/Rudy/Desktop/DL_models/'
   folder = "net_type/"
-  net_name = "ResNet_fed_hp"
+  subfolder = 'typology/'
+  net_name = "InceptionNet1D"
 
   from keras.callbacks import ReduceLROnPlateau
 
   tf.debugging.set_log_device_placement(True)
   for i in range(times2train):
-      model = newModel(dim='1D', type='ResNet', subtype='ResNet_fed_hp')
-      checkpoint_path = outpath + folder + net_name + str(i+3) + ".best.hdf5"
-      # checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+      model = newModel(dim='1D', type='InceptionNet', subtype='InceptionNet-1D')
+      # checkpoint_path = outpath + folder + subfolder + net_name + str(i+3) + ".best.hdf5"
+      checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
       # checkpoint_dir = os.path.dirnamename(checkpoint_path)
       mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                            save_weights_only=True, mode='min')
@@ -57,7 +58,7 @@ def training():
 
       # selected channel 0 to keep only Re(spectrogram)
       history = model.fit(X_train_flat, ny_train,
-                          epochs=100,
+                          epochs=200,
                           batch_size=50,
                           shuffle=True,
                           validation_data=(X_val_flat, ny_val),

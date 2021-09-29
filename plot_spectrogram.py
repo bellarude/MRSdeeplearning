@@ -7,7 +7,7 @@ from matplotlib.ticker import FormatStrFormatter
 
 def dataimport2D(folder, filename):
     data_import = sio.loadmat(folder + filename)
-    dataset = data_import['output_nw']
+    dataset = data_import['output']
 
     X_train = dataset[0:18000, :, :, :]
     X_val   = dataset[18000:20000, :, :, :]
@@ -34,12 +34,37 @@ def readme_import(folder, filename):
 
     return snr, shim, mmbgw
 
+def dataimportUNET(index):
+    global y_train, y_val, y_test, X_train, X_val, X_test
+
+    os.environ["KERAS_BACKEND"] = "theano"
+    K.set_image_data_format('channels_last')
+
+
+    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/'
+
+    data_import = sio.loadmat(dest_folder + 'spectra_kor_wat.mat')
+    labels_import = sio.loadmat(dest_folder + 'labels_kor_' + str(index) + '_NOwat.mat')
+
+    dataset = data_import['spectra_kor']
+    labels = labels_import['labels_kor_' + str(index)]
+
+    # X_train = dataset[0:18000, :]
+    # X_val = dataset[18000:20000, :]
+    X_test = dataset[19000:20000, :]  # unused
+
+    # y_train = labels[0:18000, :]
+    # y_val = labels[18000:20000, :]
+    y_test = labels[19000:20000, :]
+
+    return X_test, y_test
+
 folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
 dataname = 'dataset_spectra_TEST.mat'
 X_train1d, X_val1d = dataimport1D(folder, dataname)
 snr, shim, mmbgw = readme_import(folder, 'readme_TEST.mat')
 
-dataname = 'dataset_spgram_nw_TEST.mat'
+dataname = 'dataset_spgram_TEST.mat'
 X_train2d, X_val2d = dataimport2D(folder, dataname)
 
 labelsname = 'labels_c_TEST.mat'
@@ -50,7 +75,6 @@ signals = f['signals']
 time = signals['time']
 # time.visititems(lambda n,o:print(n, o)) #to print the struct names
 t = time['fid_shim_mmbl_snr'][()]
-
 
 treal = np.empty((4096,2500))
 timag = np.empty((4096,2500))
