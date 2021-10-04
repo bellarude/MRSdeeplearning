@@ -14,7 +14,11 @@ from data_load_norm import labelsNorm, ilabelsNorm
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
 
-inputFolder = r'C:\Users\Rudy\Desktop\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
+amsm_gpu = 0
+if amsm_gpu:
+    inputFolder = r'C:\Users\Rudy\Desktop\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
+else:
+    inputFolder = r'C:\Users\Rudy\Documents\WMD\01_Project 2 - Deep Learning\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
 fileName = r'\fitStatistics.xlsx'
 
 fit = pd.read_excel(inputFolder + fileName, sheet_name= 'area', header=None)
@@ -375,6 +379,40 @@ def plotSHIM2x4fromindex(i, labels, pred):
 plotSHIM2x4fromindex(0,  y_test, ofit)
 plotSHIM2x4fromindex(8,  y_test, ofit)
 
+
+# # -------------------------------------------------------------
+# # exel savings
+# # -------------------------------------------------------------
+#
+# def scores4fit(index):
+#     x = y_test[:, index].reshape(-1, 1)
+#     y = ofit[:, index]
+#     regr.fit(x, y)
+#     # lin = regr.predict(np.arange(0, np.max(gt[:, index]), 0.01).reshape(-1, 1))
+#     mse = mean_squared_error(x, y)
+#     r_sq = regr.score(x, y)
+#
+#
+#     return regr.coef_[0], regr.intercept_, r_sq, mse
+#
+# excelname = '/' 'fit_model_A_eval.xlsx'
+# workbook = xlsxwriter.Workbook(inputFolder + excelname)
+# worksheet = workbook.add_worksheet()
+# for i in range(16):
+#     a, q, r2, mse = scores4fit(i)
+#     s = 'A' + str(i * 4 + 1)
+#     worksheet.write(s, a)
+#     s = 'A' + str(i * 4 + 2)
+#     worksheet.write(s, q)
+#     s = 'A' + str(i * 4 + 3)
+#     worksheet.write(s, r2)
+#     s = 'A' + str(i * 4 + 4)
+#     worksheet.write(s, mse)
+#
+# workbook.close()
+# print('xlsx SAVED')
+
+
 # -------------------------------------------------------------
 # plot CRLB
 # -------------------------------------------------------------
@@ -616,3 +654,4 @@ plotCRLB3histfromindex(12)
 
 fig = plt.figure()
 crlbeval3hist(0, metnames[0])
+
