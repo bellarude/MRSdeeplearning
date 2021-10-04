@@ -2,6 +2,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import scipy.io as sio
+import h5py
 # import matplotlib.pyplot as plt
 # import h5py
 # from keras.models import Model, load_model, Sequential
@@ -22,19 +23,33 @@ import tensorflow.keras.backend as K
 #
 # from sklearn import datasets, linear_model
 # from sklearn.metrics import mean_squared_error, r2_score
+def dataimport2Dhres(folder, filename, keyname):
+    filepath = folder + filename
+    data_import = {}
+    f = h5py.File(filepath, 'r')
+    for k, v in f.items():
+        data_import[k] = np.array(v)
 
+    # data_import = sio.loadmat(folder + filename)
+    dataset = data_import[keyname]
+    dataset = np.transpose(dataset, (3, 2, 1, 0))
+
+    X_train = dataset[0:35000, :, :, :]
+    X_val = dataset[35000:40000, :, :, :]
+
+    return X_train, X_val
 
 def dataimport2D(folder, filename, keyname):
 
     # dataset20: 18000 training, 2000 validation
     # dataset24, 25, 26,27,30: 20000 training, 5000 validation
     # dataset29 and 32: 35 training, 5000 validation
+
     data_import = sio.loadmat(folder + filename)
     dataset = data_import[keyname]
 
-    X_train = dataset[0:20000, :, :, :]
-    X_val   = dataset[20000:25000, :, :, :]
-    # X_test  = dataset[18000:20000, :, :, :]
+    X_train = dataset[0:35000, :, :, :]
+    X_val   = dataset[35000:40000, :, :, :]
 
     return X_train, X_val
 
@@ -73,8 +88,8 @@ def dataimport1D(folder, filename, keyname):
 def labelsimport(folder, filename, keyname):
     labels_import = sio.loadmat(folder + filename)
     labels = labels_import[keyname] * 64.5
-    y_train = labels[0:20000, :]
-    y_val = labels[20000:25000, :]
+    y_train = labels[0:35000, :]
+    y_val = labels[35000:40000, :]
     # y_test = labels[18000:20000, :]
 
     return y_train, y_val

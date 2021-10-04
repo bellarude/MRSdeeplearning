@@ -24,17 +24,22 @@ import xlsxwriter
 from sklearn import datasets, linear_model
 from sklearn.metrics import mean_squared_error, r2_score
 
-from data_load_norm import dataimport2D, labelsimport, labelsNorm, ilabelsNorm, inputConcat2D, dataimport2D_md, labelsimport_md
+from data_load_norm import dataimport2D, labelsimport, labelsNorm, ilabelsNorm, inputConcat2D, dataimport2D_md, labelsimport_md, dataimport2Dhres
 from models import newModel
 
 md_input = 0
 flat_input = 0
 resize_input = 0
+hres = 1
 
 if md_input == 0:
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_26/'
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_32/'
     dataname = 'dataset_spgram.mat'
-    X_train, X_val = dataimport2D(folder, dataname, 'dataset')
+
+    if hres:
+        X_train, X_val = dataimport2Dhres(folder, dataname, 'dataset')
+    else:
+        X_train, X_val = dataimport2D(folder, dataname, 'dataset')
 
     labelsname = 'labels_c.mat'
     y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
@@ -82,7 +87,7 @@ def training():
     outpath = 'C:/Users/Rudy/Desktop/DL_models/'
     folder = "active_learning/"
     subfolder = ""
-    net_name = "ShallowNet-2D2c-hp-d26"
+    net_name = "ShallowNet-2D2c-hp-d32"
 
     from keras.callbacks import ReduceLROnPlateau
 
