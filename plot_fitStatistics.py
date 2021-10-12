@@ -11,12 +11,20 @@ from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 from data_load_norm import labelsNorm, ilabelsNorm
 
+import matplotlib
+matplotlib.rcParams['xtick.labelsize'] = 12
+matplotlib.rcParams['ytick.labelsize'] = 12
+matplotlib.rcParams['axes.titlesize'] = 18
+matplotlib.rcParams['legend.fontsize'] = 12
+matplotlib.rcParams['font.size'] = 12
+matplotlib.rcParams['axes.labelsize'] = 15
+
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
 
-amsm_gpu = 0
+amsm_gpu = 1
 if amsm_gpu:
-    inputFolder = r'C:\Users\Rudy\Desktop\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
+    inputFolder = r'C:\Users\Rudy\Desktop\FitAidProject+RAWdata\rawfit_areapos_lorfix_testset20'
 else:
     inputFolder = r'C:\Users\Rudy\Documents\WMD\01_Project 2 - Deep Learning\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
 fileName = r'\fitStatistics.xlsx'
@@ -32,11 +40,11 @@ for idx in range(0,len(orderFit)):
     ofit[:, idx] = fit.values[:, orderFit[idx]]/64.5*fit.values[:, 17]
     ocrlb[:,idx] = crlb.values[:, orderFit[idx]]
 
-dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
 def simulationimport():
     global  nlabels, w_nlabels, snr_v, shim_v
 
-    labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
+    labels_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
     snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
     readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
 
@@ -45,7 +53,7 @@ def simulationimport():
     shim_v = readme_SHIM['shim_v']
 
     # reshaping
-    labels = np.transpose(labels, (1, 0))
+    # labels = np.transpose(labels, (1, 0))
     nlabels, w_nlabels = labelsNorm(labels)
 
     return  nlabels, w_nlabels, snr_v, shim_v
@@ -137,7 +145,7 @@ def jointregressionfit(index, gt, pred, met, outer=None, sharey = 0, sharex = 0)
         r'$\sigma=%.2f$' % (np.sqrt(mse),)))
     ax1 = plt.subplot(gs[1])
     props = dict(boxstyle='round', facecolor='white', alpha=0.5)
-    ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes,
             verticalalignment='top', bbox=props)
 
     patch_t1 = mpatches.Patch(facecolor='w', label=r'$a=%.3f$' % (regr.coef_[0],))
@@ -595,7 +603,7 @@ def crlbeval3hist(index, met, outer=None, sharey = 0, sharex = 0):
     for i, label in enumerate(ax3.axes.get_xticklabels()):
         if i < len(ax3.axes.get_xticklabels()) - 1:
             label.set_visible(False)
-    ax3.axes.set_xlabel(textstr)
+    ax3.axes.set_xlabel(textstr, fontsize=11)
     ax3.xaxis.set_label_position('top')
 
     ax4 = plt.subplot(gs[6])
@@ -608,7 +616,7 @@ def crlbeval3hist(index, met, outer=None, sharey = 0, sharex = 0):
     for i, label in enumerate(ax4.axes.get_xticklabels()):
         if i < len(ax4.axes.get_xticklabels()) - 1:
             label.set_visible(False)
-    ax4.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_2 )
+    ax4.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_2, fontsize=11 )
     ax4.xaxis.set_label_position('top')
 
     ax5 = plt.subplot(gs[7])
@@ -621,7 +629,7 @@ def crlbeval3hist(index, met, outer=None, sharey = 0, sharex = 0):
     for i, label in enumerate(ax5.axes.get_xticklabels()):
         if i < len(ax5.axes.get_xticklabels()) - 1:
             label.set_visible(False)
-    ax5.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_3 )
+    ax5.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_3, fontsize=11 )
     ax5.xaxis.set_label_position('top')
 
 

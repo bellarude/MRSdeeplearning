@@ -71,6 +71,12 @@ def newModel(dim, type, subtype):
 
         # --- Dropout
         sDrop = lambda x, rate: layers.SpatialDropout2D(rate, data_format='channels_last')(x)
+
+        class SpatialDropout2DMC(layers.SpatialDropout2D):
+            def call(self, inputs):
+                return super().call(inputs, training=True)
+            
+        sDropMonteCarlo = lambda x, rate: SpatialDropout2DMC(rate, data_format='channels_last')(x)
         drop = lambda x, rate: layers.Dropout(rate, noise_shape=None, seed=None)(x)
 
         # Federico's blocks
@@ -170,6 +176,32 @@ def newModel(dim, type, subtype):
                 l2 = sDrop(maxP(convBlock_ks_elu(100, (9, 9), l1), **poolargs), 0.35)
                 l3 = sDrop(maxP(convBlock_ks_elu(150, (5, 5), l2), **poolargs), 0.35)
                 outputs = lin(normD(dense(17, flatten(l3))))
+
+                lrate = 5.3954e-3
+                print('net type: ShallowELU_hp')
+                # -----------------------------------------------------------------
+
+            if subtype == 'ShallowELU_hp_MC':
+                # -----------------------------------------------------------------
+                # shallow ELU-CNN from ESMRMB abstract hp
+                # -----------------------------------------------------------------
+                l1 = maxP(convBlock_ks_elu(300, (7, 7), inputs), **poolargs)
+                l2 = sDropMonteCarlo(maxP(convBlock_ks_elu(100, (9, 9), l1), **poolargs), 0.35)
+                l3 = sDropMonteCarlo(maxP(convBlock_ks_elu(150, (5, 5), l2), **poolargs), 0.35)
+                outputs = lin(normD(dense(17, flatten(l3))))
+
+                lrate = 5.3954e-3
+                print('net type: ShallowELU_hp_MC')
+                # -----------------------------------------------------------------
+
+            if subtype == 'ShallowELU_hp_nw':
+                # -----------------------------------------------------------------
+                # shallow ELU-CNN from ESMRMB abstract hp
+                # -----------------------------------------------------------------
+                l1 = maxP(convBlock_ks_elu(300, (7, 7), inputs), **poolargs)
+                l2 = sDrop(maxP(convBlock_ks_elu(100, (9, 9), l1), **poolargs), 0.35)
+                l3 = sDrop(maxP(convBlock_ks_elu(150, (5, 5), l2), **poolargs), 0.35)
+                outputs = lin(normD(dense(16, flatten(l3))))
 
                 lrate = 5.3954e-3
                 print('net type: ShallowELU_hp')

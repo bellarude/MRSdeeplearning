@@ -30,19 +30,22 @@ from models import newModel
 md_input = 0
 flat_input = 0
 resize_input = 0
-hres = 1
+hres = 0
 
 if md_input == 0:
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_32/'
-    dataname = 'dataset_spgram.mat'
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/'
+    dataname = 'dataset_spgram_nw.mat'
+    labelsname = 'labels_c_nw.mat'
 
     if hres:
         X_train, X_val = dataimport2Dhres(folder, dataname, 'dataset')
+        y_train, y_val = labelsimporthres(folder, labelsname, 'labels_c')
     else:
-        X_train, X_val = dataimport2D(folder, dataname, 'dataset')
+        X_train, X_val = dataimport2D(folder, dataname, 'dataset_nw')
+        y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
 
-    labelsname = 'labels_c.mat'
-    y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
+
+
     # nX_train_rs = dataNorm(X_train_rs)
     # nX_val_rs = dataNorm(X_val_rs)
 
@@ -85,9 +88,9 @@ if resize_input:
 def training():
     times2train = 10
     outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-    folder = "active_learning/"
+    folder = "water_reference/"
     subfolder = ""
-    net_name = "ShallowNet-2D2c-hp-d32"
+    net_name = "ShallowNet-2D2c-hp-nw"
 
     from keras.callbacks import ReduceLROnPlateau
 
@@ -95,7 +98,7 @@ def training():
     for i in range(times2train):
         start = time.time()
 
-        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp_nw')
         # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
         checkpoint_path = outpath + folder + subfolder + net_name + "-" + str(i) + ".best.hdf5"
 

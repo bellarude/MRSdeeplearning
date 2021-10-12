@@ -11,42 +11,52 @@ from sklearn.metrics import mean_squared_error
 from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsimport_md
 from models import newModel
 
-md_input = 0
-flat_input = 1
+import matplotlib
+matplotlib.rcParams['xtick.labelsize'] = 12
+matplotlib.rcParams['ytick.labelsize'] = 12
+matplotlib.rcParams['axes.titlesize'] = 18
+matplotlib.rcParams['legend.fontsize'] = 12
+matplotlib.rcParams['font.size'] = 12
+matplotlib.rcParams['axes.labelsize'] = 15
+
+
+input1d = 0
+md_input = 1
+flat_input = 0
 
 if md_input == 0:
-    # dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    # dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
     dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
 
     def datatestimport():
         global dataset1D, dataset2D, nlabels, w_nlabels, snr_v, shim_v
 
-        data_import2D   = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
-        # data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
-        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
         snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
         readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
+        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_nw.mat')
 
-
-        dataset2D = data_import2D['output']
-        # dataset1D = data_import1D['dataset_spectra']
         labels  = labels_import['labels_c']*64.5
         snr_v = snr_v['snr_v']
         shim_v = readme_SHIM['shim_v']
-
-        #reshaping
-        # dataset1D = np.transpose(dataset1D, (0, 2, 1))
-        # dataset1D = inputConcat1D(dataset1D)
-        dataset1D = []
         # labels = np.transpose(labels,(1,0))
-
-        # nndataset_rs = dataNorm(ndataset_rs)
-        # nndataset_rs = ndataset_rs
-
         nlabels, w_nlabels = labelsNorm(labels)
 
-        return dataset1D, dataset2D, nlabels, w_nlabels, snr_v, shim_v
+        if input1d:
+            data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
+            dataset1D = data_import1D['dataset_spectra']
+            # reshaping
+            dataset1D = np.transpose(dataset1D, (0, 2, 1))
+            dataset1D = inputConcat1D(dataset1D)
 
+            return dataset1D, nlabels, w_nlabels, snr_v, shim_v
+        else:
+            data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
+            dataset2D = data_import2D['output']
+
+            if flat_input:
+                dataset2D = inputConcat2D(dataset2D)
+
+            return dataset2D, nlabels, w_nlabels, snr_v, shim_v
 
     datatestimport()
 else:
@@ -85,17 +95,16 @@ else:
     nlabels, w_nlabels = labelsNorm(y_test)
     dataset2D = X_test
 
-if flat_input:
-    dataset2D_flat = inputConcat2D(dataset2D)
+
 
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-folder = "water_reference/" #"net_type/"
-subfolder = "" #"typology/"
-net_name = "RRdecoder_ESMRMB1_d31_0"
+folder = "net_type/"
+subfolder = ""
+net_name = "ShallowELU_hp_md_gt"
 checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
-model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU')
+model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
 
 model.load_weights(checkpoint_path)
@@ -112,6 +121,10 @@ for i in range(17):
     pred[:, i] = pred_un[:, i] / pred_un[:, 16] * 64.5
     y_test[:, i] = y_test[:, i] / y_test[:, 16] * 64.5
 
+# for no_water referenced case
+# for i in range(16):
+#     pred[:, i] = pred_un[:, i]
+#     y_test[:, i] = y_test[:, i]
 
 regr = linear_model.LinearRegression()
 
@@ -146,7 +159,8 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     # ----------------------------------------------
 
     ax2 = plt.subplot(gs[2])
-    p1 = ax2.scatter(y_test[:, index], pred[:, index], c=snr_v, cmap='summer', label = 'observation')
+    # p1 = ax2.scatter(y_test[:, index], pred[:, index], c=snr_v, cmap='summer', label = 'observation')
+    p1 = ax2.scatter(y_test[:, index], pred[:, index], c='darkgreen', cmap='summer', label='observation')
     m = np.max(y_test[:, index])
     ax2.plot(np.arange(0, m, 0.01), lin, color='tab:olive', linewidth=3)
     ident = [0.0, m]
@@ -197,7 +211,7 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
         r'$\sigma=%.2f$' % (np.sqrt(mse),)))
     ax1 = plt.subplot(gs[1])
     props = dict(boxstyle='round', facecolor='white', alpha=0.5)
-    ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes,
             verticalalignment='top', bbox=props)
 
     patch_t1 = mpatches.Patch(facecolor='w', label=r'$a=%.3f$' % (regr.coef_[0],))
@@ -405,6 +419,37 @@ def plotREGR2x4fromindex(i):
                 jointregression(order[i], metnames[order[i]], spec[row, col])
 
             i += 1
+
+# -------------------------------------------------------------
+# plot regression 4x4
+# -------------------------------------------------------------
+def plotREGR4x4fromindex(i):
+    fig = plt.figure(figsize = (40,30))
+
+    widths = 2*np.ones(4)
+    heights = 2*np.ones(4)
+    spec = fig.add_gridspec(ncols=4, nrows=4, width_ratios=widths,
+                              height_ratios=heights,
+                                top = 0.97,
+                                bottom = 0.06,
+                                left = 0.06,
+                                right = 0.97,
+                                hspace = 0.2,
+                                wspace = 0.2)
+
+    for row in range(4):
+        for col in range(4):
+            ax = fig.add_subplot(spec[row,col])
+            if ((col==1) or (col==2) or (col==3)) and (row==3):
+                jointregression(order[i], metnames[order[i]], spec[row,col], sharex=1)
+            elif (col==0) and ((row==0) or (row==1) or (row==2)):
+                jointregression(order[i], metnames[order[i]], spec[row,col], sharey=1)
+            elif (col==0) and (row==3):
+                jointregression(order[i], metnames[order[i]], spec[row, col], sharex=1, sharey=1)
+            else:
+                jointregression(order[i], metnames[order[i]], spec[row, col])
+
+            i += 1
 #
 # def plotREGR_paper_fromindex(i):
 #     fig = plt.figure(figsize = (10,40))
@@ -430,6 +475,7 @@ def plotREGR2x4fromindex(i):
 # plotREGR_paper_fromindex(0)
 plotREGR2x4fromindex(0)
 plotREGR2x4fromindex(8)
+plotREGR4x4fromindex(0)
 
 
 if doSNR:

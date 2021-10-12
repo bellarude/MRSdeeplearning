@@ -48,8 +48,8 @@ def dataimport2D(folder, filename, keyname):
     data_import = sio.loadmat(folder + filename)
     dataset = data_import[keyname]
 
-    X_train = dataset[0:35000, :, :, :]
-    X_val   = dataset[35000:40000, :, :, :]
+    X_train = dataset[0:18000, :, :, :]
+    X_val   = dataset[18000:20000, :, :, :]
 
     return X_train, X_val
 
@@ -86,6 +86,15 @@ def dataimport1D(folder, filename, keyname):
     return X_train, X_val
 
 def labelsimport(folder, filename, keyname):
+    labels_import = sio.loadmat(folder + filename)
+    labels = labels_import[keyname] * 64.5
+    y_train = labels[0:18000, :]
+    y_val = labels[18000:20000, :]
+    # y_test = labels[18000:20000, :]
+
+    return y_train, y_val
+
+def labelsimporthres(folder, filename, keyname):
     labels_import = sio.loadmat(folder + filename)
     labels = labels_import[keyname] * 64.5
     y_train = labels[0:35000, :]

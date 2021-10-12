@@ -26,13 +26,16 @@ from sklearn.metrics import mean_squared_error, r2_score
 from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat2D, inputConcat1D, dataimport2D, labelsimport, dataimport1D
 from models import newModel
 
-dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+doOnlyTest = 0
+hybrid_model = 1
+
 def testimport():
     global dataset2D, dataset1D, nlabels, w_nlabels
 
-    data2D_import = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
-    data1D_import = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
-    labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
+    data_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
+    data2D_import = sio.loadmat(data_folder + 'dataset_spgram_TEST.mat')
+    data1D_import = sio.loadmat(data_folder + 'dataset_spectra_TEST.mat')
+    labels_import = sio.loadmat(data_folder + 'labels_c_TEST.mat')
 
     dataset2D = data2D_import['output']
     dataset1D = data1D_import['dataset_spectra']
@@ -41,7 +44,7 @@ def testimport():
     #reshaping
     # dataset2D_rs = np.transpose(dataset2D, (0, 3, 1, 2))
     dataset1D = np.transpose(dataset1D, (0, 2, 1))
-    labels = np.transpose(labels,(1,0))
+    # labels = np.transpose(labels,(1,0))
 
     nlabels, w_nlabels = labelsNorm(labels)
 
@@ -53,33 +56,34 @@ dataset1D_flat = inputConcat1D(dataset1D)
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
+subfolder = 'ensemble/'
 
 net_names = ['ShallowELU_hp',
-             'ShallowELU_hp2',
-             'ShallowELU_hp3',
-             'ShallowELU_hp4',
-             'ShallowELU_hp5',
-             'ResNet_fed_hp',
-             'ResNet_fed_hp2',
-             'ResNet_fed_hp3',
-             'ResNet_fed_hp4',
-             'ResNet_fed_hp5']
+             # 'ShallowELU_hp2',
+             # 'ShallowELU_hp3',
+             # 'ShallowELU_hp4',
+             # 'ShallowELU_hp5',
+             'ResNet_fed_hp']
+             #'ResNet_fed_hp2',
+             #'ResNet_fed_hp3',
+             #'ResNet_fed_hp4',
+             #'ResNet_fed_hp5']
 
 model_type = {0: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
-              1: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
-              2: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
-              3: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
-              4: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
-              5: ['1D', 'ResNet', 'ResNet_fed_hp'],
-              6: ['1D', 'ResNet', 'ResNet_fed_hp'],
-              7: ['1D', 'ResNet', 'ResNet_fed_hp'],
-              8: ['1D', 'ResNet', 'ResNet_fed_hp'],
-              9: ['1D', 'ResNet', 'ResNet_fed_hp']}
+              # 1: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              # 2: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              # 3: ['2D', 'ShallowCNN', 'ShallowELU_hp'],
+              # 4: ['2D', 'ShallowCNN', 'ShallowELU_hp']}
+              1: ['1D', 'ResNet', 'ResNet_fed_hp']}
+              # 6: ['1D', 'ResNet', 'ResNet_fed_hp'],
+              # 7: ['1D', 'ResNet', 'ResNet_fed_hp'],
+              # 8: ['1D', 'ResNet', 'ResNet_fed_hp'],
+              # 9: ['1D', 'ResNet', 'ResNet_fed_hp']}
 
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
 members = list()
 for i in range(len(net_names)):
-    checkpoint_path = outpath + folder + net_names[i] + ".best.hdf5"
+    checkpoint_path = outpath + folder + subfolder + net_names[i] + ".best.hdf5"
     model = newModel(dim=model_type[i][0], type=model_type[i][1], subtype=model_type[i][2])
     model.load_weights(checkpoint_path)
     members.append(model)
@@ -106,12 +110,12 @@ for i in range(len(net_names)):
 # labels_test = nlabels[2000:2500, :]
 # -----------------------------------------------------------------------------------------------------
 
-folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+inputfolder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
 dataname = 'dataset_spgram.mat'
-X_train, X_val = dataimport2D(folder, dataname, 'dataset')
+X_train, X_val = dataimport2D(inputfolder, dataname, 'dataset')
 
 labelsname = 'labels_c.mat'
-y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
+y_train, y_val = labelsimport(inputfolder, labelsname, 'labels_c')
 
 ny_train, w_y_train = labelsNorm(y_train)
 ny_val, w_y_val = labelsNorm(y_val)
@@ -124,7 +128,7 @@ labels_val = ny_val
 labels_test = nlabels
 
 dataname = 'dataset_spectra.mat'
-X_train, X_val = dataimport1D(folder, dataname, 'dataset_spectra')
+X_train, X_val = dataimport1D(inputfolder, dataname, 'dataset_spectra')
 X_train_flat = inputConcat1D(X_train)
 X_val_flat = inputConcat1D(X_val)
 
@@ -181,7 +185,7 @@ stacked_model.summary()
 
 v = 0
 # fit a stacked model
-def fit_stacked_model(model, train2D, val2D, labels_train, labels_val):
+def fit_stacked_model(model, train2D, val2D, labels_train, labels_val, net_name):
     # prepare input data
     X_train = [train2D for _ in range(len(model.input))]
     X_val = [val2D for _ in range(len(model.input))]
@@ -189,11 +193,8 @@ def fit_stacked_model(model, train2D, val2D, labels_train, labels_val):
     # inputy_enc = to_categorical(inputy)
     # fit model
     # model.fit(X, labels_1, epochs=300, verbose=1)
-    outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-    folder = "net_type/"
-    net_name = "ensemble"
 
-    checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+    checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
     # checkpoint_dir = os.path.dirname(checkpoint_path)
     mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                          save_weights_only=True, mode='min')
@@ -220,7 +221,7 @@ def fit_stacked_model(model, train2D, val2D, labels_train, labels_val):
     plt.xlabel('epoch')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
-def fit_stacked_hybrid_model(model, train2D, val2D, train1D, val1D, labels_train, labels_val):
+def fit_stacked_hybrid_model(model, train2D, val2D, train1D, val1D, labels_train, labels_val, net_name):
     # prepare input data
     X_train = []
     X_val = []
@@ -236,11 +237,8 @@ def fit_stacked_hybrid_model(model, train2D, val2D, train1D, val1D, labels_train
     # inputy_enc = to_categorical(inputy)
     # fit model
     # model.fit(X, labels_1, epochs=300, verbose=1)
-    outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-    folder = "net_type/"
-    net_name = "ensemble_hybrid_n2"
 
-    checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+    checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
     # checkpoint_dir = os.path.dirname(checkpoint_path)
     mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
                          save_weights_only=True, mode='min')
@@ -267,9 +265,20 @@ def fit_stacked_hybrid_model(model, train2D, val2D, train1D, val1D, labels_train
     plt.xlabel('epoch')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
-# fit stacked model on test dataset
-# fit_stacked_model(stacked_model, train2D, val2D, labels_train, labels_val)
-fit_stacked_hybrid_model(stacked_model, train2D, val2D, train1D, val1D, labels_train, labels_val)
+
+if doOnlyTest == 0:
+    # ------------------------------------------------------------
+    # fit stacked model on train dataset
+    # ------------------------------------------------------------
+    if hybrid_model == 0:
+        fit_stacked_model(stacked_model, train2D, val2D, labels_train, labels_val, 'shallowNets_ensemble_net')
+    else:
+        fit_stacked_hybrid_model(stacked_model, train2D, val2D, train1D, val1D, labels_train, labels_val, 'ensemble_hybrid_n2_net')
+else:
+    net_name = "ensemble_hybrid_net"
+
+    checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
+    stacked_model.load_weights(checkpoint_path)
 
 # make a prediction with a stacked model
 def predict_stacked_model(model, inputX):
@@ -374,29 +383,29 @@ regr = linear_model.LinearRegression()
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'Myo', 'PE', 'Scy',
             'Tau', 'Water']
 
-def subplotconcentration(index, pred):
-    # ----------------------------------------------
-    x = y_test[:, index].reshape(-1, 1)
-    y = pred[:, index]
-    regr.fit(x, y)
-    lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
-    mse = mean_squared_error(x, y)
-    r_sq = regr.score(x, y)
-
-    # ----------------------------------------------
-    plt.plot(y_test[:, index], pred[:, index], 'o')
-    m = np.max(y_test[:, index])
-    plt.plot(np.arange(0, m, 0.01), lin, linewidth=4)
-    ident = [0.0, m]
-    plt.plot(ident, ident, '--', linewidth=3, color='k')
-
-    plt.plot(np.arange(0, m, 0.01), lin - np.sqrt(mse))
-    plt.plot(np.arange(0, m, 0.01), lin + np.sqrt(mse))
-    plt.title(metnames[index] + r' - Coeff: ' + str(np.round(regr.coef_, 3)) + ' - $R^2$: ' + str(
-        np.round(r_sq, 3)) + ' - mse: ' + str(np.round(mse, 3)) + ' - std: ' + str(
-        np.round(np.sqrt(mse), 3))), plt.xlabel('GT'), plt.ylabel('estimates')
-
-    return regr.coef_[0], r_sq, mse
+# def subplotconcentration(index, pred):
+#     # ----------------------------------------------
+#     x = y_test[:, index].reshape(-1, 1)
+#     y = pred[:, index]
+#     regr.fit(x, y)
+#     lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
+#     mse = mean_squared_error(x, y)
+#     r_sq = regr.score(x, y)
+#
+#     # ----------------------------------------------
+#     plt.plot(y_test[:, index], pred[:, index], 'o')
+#     m = np.max(y_test[:, index])
+#     plt.plot(np.arange(0, m, 0.01), lin, linewidth=4)
+#     ident = [0.0, m]
+#     plt.plot(ident, ident, '--', linewidth=3, color='k')
+#
+#     plt.plot(np.arange(0, m, 0.01), lin - np.sqrt(mse))
+#     plt.plot(np.arange(0, m, 0.01), lin + np.sqrt(mse))
+#     plt.title(metnames[index] + r' - Coeff: ' + str(np.round(regr.coef_, 3)) + ' - $R^2$: ' + str(
+#         np.round(r_sq, 3)) + ' - mse: ' + str(np.round(mse, 3)) + ' - std: ' + str(
+#         np.round(np.sqrt(mse), 3))), plt.xlabel('GT'), plt.ylabel('estimates')
+#
+#     return regr.coef_[0], r_sq, mse
 
 # cc= np.empty((3,1))
 # rr=cc
@@ -431,24 +440,35 @@ def subplotconcentration(index, pred):
 # plt.hist(y_test[:, idx])
 # plt.title('GT distribution')
 
-outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-folder = "net_type/"
-workbook = xlsxwriter.Workbook(outpath + folder + 'ensemble_eval.xlsx')
-worksheet = workbook.add_worksheet()
+def scoresEns(index, pred):
+    # ----------------------------------------------
+    x = y_test[:, index].reshape(-1, 1)
+    y = pred[:, index]
+    regr.fit(x, y)
+    # lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
+    mse = mean_squared_error(x, y)
+    r_sq = regr.score(x, y)
 
+    return regr.coef_[0], regr.intercept_, r_sq, mse
+
+
+workbook = xlsxwriter.Workbook(outpath + folder + subfolder + 'hybrid_ensemble_n2_eval.xlsx')
+worksheet = workbook.add_worksheet()
 for j in range(len(pred)):
     for i in range(16):
-        c, r, m = subplotconcentration(i, pred[j])
+        c, q, r, m = scoresEns(i, pred[j])
         # s = 'A' + str(i * 3 + 1)
-        row = i * 3 + 1
+        row = i * 4 + 0
         col = j
         # worksheet.write(s, c)
         worksheet.write(row, col, c)
         # s = 'A' + str(i * 3 + 2)
-        row = i * 3 + 2
-        worksheet.write(row, col, r)
+        row = i * 4 + 1
+        worksheet.write(row, col, q)
         # s = 'A' + str(i * 3 + 3)
-        row = i * 3 + 3
+        row = i * 4 + 2
+        worksheet.write(row, col, r)
+        row = i * 4 + 3
         worksheet.write(row, col, m)
 
     # c, r, m = subplotconcentration(i, pred2)

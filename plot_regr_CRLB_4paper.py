@@ -13,24 +13,26 @@ from sklearn.metrics import mean_squared_error
 from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsimport_md
 from models import newModel
 
-matplotlib.rcParams['xtick.labelsize'] = 15
-matplotlib.rcParams['ytick.labelsize'] = 15
-matplotlib.rcParams['axes.titlesize'] = 20
-matplotlib.rcParams['legend.fontsize'] = 20
+import matplotlib
+matplotlib.rcParams['xtick.labelsize'] = 12
+matplotlib.rcParams['ytick.labelsize'] = 12
+matplotlib.rcParams['axes.titlesize'] = 18
+matplotlib.rcParams['legend.fontsize'] = 12
 matplotlib.rcParams['font.size'] = 12
+matplotlib.rcParams['axes.labelsize'] = 15
 
 md_input = 0
 flat_input = 0
 
 if md_input == 0:
-    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
 
     def datatestimport():
         global dataset1D, dataset2D, nlabels, w_nlabels, snr_v, shim_v
 
         data_import2D   = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
         data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
-        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
+        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
         snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
         readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
 
@@ -44,7 +46,7 @@ if md_input == 0:
         #reshaping
         dataset1D = np.transpose(dataset1D, (0, 2, 1))
         dataset1D = inputConcat1D(dataset1D)
-        labels = np.transpose(labels,(1,0))
+        # labels = np.transpose(labels,(1,0))
 
         # nndataset_rs = dataNorm(ndataset_rs)
         # nndataset_rs = ndataset_rs
@@ -98,8 +100,9 @@ if flat_input:
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
-net_name = "ShallowELU_hp3"
-checkpoint_path = outpath + folder + net_name + ".best.hdf5"
+subfolder = "typology/"
+net_name = "ShallowELU_hp"
+checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
@@ -149,6 +152,20 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     mse = mean_squared_error(x, y)
     r_sq = regr.score(x, y)
 
+    snr1idx = np.nonzero(snr_v[:, 0] < 16.7)
+    snr2idx = np.nonzero((snr_v[:, 0] >= 16.7) & (snr_v[:, 0] < 28.4))
+    snr3idx = np.nonzero(snr_v[:, 0] >= 28.4)
+
+    x1 = x[snr1idx[0]]
+    x2 = x[snr2idx[0]]
+    x3 = x[snr3idx[0]]
+    y1 = y[snr1idx[0]]
+    y2 = y[snr2idx[0]]
+    y3 = y[snr3idx[0]]
+
+    mse1 = mean_squared_error(x1, y1)
+    mse2 = mean_squared_error(x2, y2)
+    mse3 = mean_squared_error(x3, y3)
     # ----------------------------------------------
 
     ax2 = plt.subplot(gs[2])
@@ -207,6 +224,17 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     #         verticalalignment='top', bbox=props)
     ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes,
              verticalalignment='top', bbox=props)
+
+    # text
+    textstr2 = '\n'.join((
+        r'$\sigma 1=%.2f$' % (np.sqrt(mse1),),
+        r'$\sigma 2=%.2f$' % (np.sqrt(mse2),),
+        r'$\sigma 3=%.2f$' % (np.sqrt(mse3),)))
+    # ax1 = plt.subplot(gs[1])
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax2.text(0.05, 0.95, textstr2, transform=ax2.transAxes, verticalalignment='top', bbox=props)
 
     patch_t1 = mpatches.Patch(facecolor='w', label=r'$a=%.3f$' % (regr.coef_[0],))
     patch_t2 = mpatches.Patch(facecolor='w', label=r'$q=%.3f$' % (regr.intercept_,))
@@ -304,11 +332,11 @@ for idx in range(0,len(orderFit)):
     ofit[:, idx] = fit.values[:, orderFit[idx]]/64.5*fit.values[:, 17]
     ocrlb[:,idx] = crlb.values[:, orderFit[idx]]
 
-dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
 def simulationimport():
     global  nlabels, w_nlabels, snr_v, shim_v
 
-    labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_abs.mat')
+    labels_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
     snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
     readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
 
@@ -317,7 +345,7 @@ def simulationimport():
     shim_v = readme_SHIM['shim_v']
 
     # reshaping
-    labels = np.transpose(labels, (1, 0))
+    # labels = np.transpose(labels, (1, 0))
     nlabels, w_nlabels = labelsNorm(labels)
 
     return  nlabels, w_nlabels, snr_v, shim_v
@@ -355,6 +383,20 @@ def jointregressionfit(index, gt, pred, met, outer=None, sharey = 0, sharex = 0)
     mse = mean_squared_error(x, y)
     r_sq = regr.score(x, y)
 
+    snr1idx = np.nonzero(snr_v[:, 0] < 16.7)
+    snr2idx = np.nonzero((snr_v[:, 0] >= 16.7) & (snr_v[:, 0] < 28.4))
+    snr3idx = np.nonzero(snr_v[:, 0] >= 28.4)
+
+    x1 = x[snr1idx[0]]
+    x2 = x[snr2idx[0]]
+    x3 = x[snr3idx[0]]
+    y1 = y[snr1idx[0]]
+    y2 = y[snr2idx[0]]
+    y3 = y[snr3idx[0]]
+
+    mse1 = mean_squared_error(x1, y1)
+    mse2 = mean_squared_error(x2, y2)
+    mse3 = mean_squared_error(x3, y3)
     # ----------------------------------------------
 
     ax2 = plt.subplot(gs[2])
@@ -413,6 +455,17 @@ def jointregressionfit(index, gt, pred, met, outer=None, sharey = 0, sharex = 0)
     #         verticalalignment='top', bbox=props)
     ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes,
              verticalalignment='top', bbox=props)
+
+    # text
+    textstr2 = '\n'.join((
+        r'$\sigma 1=%.2f$' % (np.sqrt(mse1),),
+        r'$\sigma 2=%.2f$' % (np.sqrt(mse2),),
+        r'$\sigma 3=%.2f$' % (np.sqrt(mse3),)))
+    # ax1 = plt.subplot(gs[1])
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax2.text(0.05, 0.95, textstr2, transform=ax2.transAxes, verticalalignment='top', bbox=props)
 
     patch_t1 = mpatches.Patch(facecolor='w', label=r'$a=%.3f$' % (regr.coef_[0],))
     patch_t2 = mpatches.Patch(facecolor='w', label=r'$q=%.3f$' % (regr.intercept_,))
@@ -609,7 +662,7 @@ def crlbeval3hist(index, met, outer=None, sharey = 0, sharex = 0):
     for i, label in enumerate(ax3.axes.get_xticklabels()):
         if i < len(ax3.axes.get_xticklabels()) - 1:
             label.set_visible(False)
-    ax3.axes.set_xlabel(textstr)
+    ax3.axes.set_xlabel(textstr, fontsize=11)
     ax3.xaxis.set_label_position('top')
 
     ax4 = plt.subplot(gs[6])
@@ -622,7 +675,7 @@ def crlbeval3hist(index, met, outer=None, sharey = 0, sharex = 0):
     for i, label in enumerate(ax4.axes.get_xticklabels()):
         if i < len(ax4.axes.get_xticklabels()) - 1:
             label.set_visible(False)
-    ax4.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_2 )
+    ax4.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_2, fontsize=11 )
     ax4.xaxis.set_label_position('top')
 
     ax5 = plt.subplot(gs[7])
@@ -635,7 +688,7 @@ def crlbeval3hist(index, met, outer=None, sharey = 0, sharex = 0):
     for i, label in enumerate(ax5.axes.get_xticklabels()):
         if i < len(ax5.axes.get_xticklabels()) - 1:
             label.set_visible(False)
-    ax5.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_3 )
+    ax5.axes.set_xlabel(r'$Mo:%.2f$' % mcrlb_3, fontsize=11 )
     ax5.xaxis.set_label_position('top')
 
 
