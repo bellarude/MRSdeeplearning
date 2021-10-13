@@ -150,6 +150,17 @@ def ilabelsNorm(labels_norm, weights):
 
     return ilabels
 
+# when i test on dataset with smaller concentration than original i have to correct for it here
+def labelsNormREDdataset(labels_red, labels_or):
+    labels_norm = np.empty(labels_red.shape)
+    weights = np.empty([labels_red.shape[1], 1])
+    for i in range(labels_red.shape[1]):
+        w = np.amax(labels_or[:, i])
+        labels_norm[:, i] = labels_red[:, i] / w
+        weights[i] = w
+
+    return labels_norm, weights
+
 def inputConcat2D(input):
   i_concat = np.empty((input.shape[0], input.shape[1], input.shape[2]*2, 1))
   i_real = input[:,:,:,0]

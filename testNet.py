@@ -8,7 +8,7 @@ import xlsxwriter
 
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
-from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsimport_md
+from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsNormREDdataset
 from models import newModel
 
 import matplotlib
@@ -21,25 +21,31 @@ matplotlib.rcParams['axes.labelsize'] = 15
 
 
 input1d = 0
-md_input = 1
+md_input = 0
 flat_input = 0
+test_diff_conc_bounds = 1
 
 if md_input == 0:
-    # dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
-    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
+    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
+    # dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
 
     def datatestimport():
         global dataset1D, dataset2D, nlabels, w_nlabels, snr_v, shim_v
 
-        snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
-        readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
-        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_nw.mat')
+        snr_v = sio.loadmat(dest_folder + 'snr_v_TEST_0406')
+        readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST_0406.mat')
+        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_0406.mat')
 
         labels  = labels_import['labels_c']*64.5
         snr_v = snr_v['snr_v']
         shim_v = readme_SHIM['shim_v']
         # labels = np.transpose(labels,(1,0))
-        nlabels, w_nlabels = labelsNorm(labels)
+        if test_diff_conc_bounds == 0:
+            nlabels, w_nlabels = labelsNorm(labels)
+        else:
+            labels_import_orig = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
+            labels_orig = labels_import_orig['labels_c'] * 64.5
+            nlabels, w_nlabels = labelsNormREDdataset(labels, labels_orig)
 
         if input1d:
             data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
@@ -50,7 +56,7 @@ if md_input == 0:
 
             return dataset1D, nlabels, w_nlabels, snr_v, shim_v
         else:
-            data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
+            data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST_0406.mat')
             dataset2D = data_import2D['output']
 
             if flat_input:
@@ -100,8 +106,8 @@ else:
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "net_type/"
-subfolder = ""
-net_name = "ShallowELU_hp_md_gt"
+subfolder = "typology/"
+net_name = "ShallowELU_hp"
 checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
@@ -152,18 +158,18 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     x = y_test[:, index].reshape(-1, 1)
     y = pred[:, index]
     regr.fit(x, y)
-    lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
+    lin = regr.predict(np.arange(np.min(y_test[:, index]), np.max(y_test[:, index]), 0.01).reshape(-1, 1))
     mse = mean_squared_error(x, y)
     r_sq = regr.score(x, y)
 
     # ----------------------------------------------
 
     ax2 = plt.subplot(gs[2])
-    # p1 = ax2.scatter(y_test[:, index], pred[:, index], c=snr_v, cmap='summer', label = 'observation')
-    p1 = ax2.scatter(y_test[:, index], pred[:, index], c='darkgreen', cmap='summer', label='observation')
+    p1 = ax2.scatter(y_test[:, index], pred[:, index], c=snr_v, cmap='summer', label = 'observation')
+    # p1 = ax2.scatter(y_test[:, index], pred[:, index], c='darkgreen', cmap='summer', label='observation')
     m = np.max(y_test[:, index])
-    ax2.plot(np.arange(0, m, 0.01), lin, color='tab:olive', linewidth=3)
-    ident = [0.0, m]
+    ax2.plot(np.arange(np.min(y_test[:, index]), m, 0.01), lin, color='tab:olive', linewidth=3)
+    ident = [np.min(y_test[:, index]), m]
     ax2.plot(ident, ident, '--', linewidth=3, color='k')
     # ax1 = plt.subplot(gs[1])
 
@@ -182,7 +188,7 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
 
     mP = np.min(y)
     MP = np.max(y)
-    ax2.set_xlim(0 - (0.05 * m), m + (0.05 * m))
+    ax2.set_xlim(np.min(y_test[:, index]) - (0.05 * m), m + (0.05 * m))
     ax2.set_ylim(mP - (0.05*MP), MP + (0.05*MP))
 
     ax0 = plt.subplot(gs[0])
@@ -192,7 +198,7 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
     ax0.xaxis.set_visible(False)
     ax0.yaxis.set_visible(False)
     ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
-    ax0.set_xlim(0 - (0.05 * m), m + (0.05 * m))
+    ax0.set_xlim(np.min(y_test[:, index]) - (0.05 * m), m + (0.05 * m))
 
     ax3 = plt.subplot(gs[3])
     sns.distplot(y, ax=ax3, vertical=True, color='tab:olive')
@@ -544,7 +550,7 @@ def scores(index):
 
     return regr.coef_[0], regr.intercept_, r_sq, mse
 
-excelname = '/' + net_name + '_eval.xlsx'
+excelname = '/' + net_name + '0mu_test_eval.xlsx'
 workbook = xlsxwriter.Workbook(outpath + folder + subfolder + excelname)
 worksheet = workbook.add_worksheet()
 for i in range(16):
