@@ -717,7 +717,7 @@ def plotCRLB3histfromindex(i):
 
 plotCRLB3histfromindex(0)
 plotCRLB3histfromindex(6)
-plotCRLB3histfromindex(12)
+# plotCRLB3histfromindex(12)
 
 
 def plot_manuscript(i):
@@ -741,3 +741,175 @@ plot_manuscript(4)
 plot_manuscript(11)
 plot_manuscript(14)
 plot_manuscript(2)
+
+# CRLB as function(GT) values, with different SNR counted in
+
+from scipy.signal import savgol_filter
+
+set_low_size = np.shape(np.nonzero(snr_v[:,0] < 16.7)[0])[0]
+set_mid_size = np.shape(np.nonzero((snr_v[:,0] >= 16.7) & (snr_v[:,0] < 28.4))[0])[0]
+set_high_size = np.shape(np.nonzero(snr_v[:,0] >= 28.4)[0])[0]
+
+y_test_sort = np.zeros(y_test.shape)
+snr_v_sort = np.zeros(y_test.shape)
+snr_sort_idx_low = np.zeros((set_low_size, 17), dtype=int)
+snr_sort_idx_mid = np.zeros((set_mid_size, 17), dtype=int)
+snr_sort_idx_high = np.zeros((set_high_size, 17), dtype=int)
+ofit_sort = np.zeros(y_test.shape)
+ocrlb_sort = np.zeros(y_test.shape)
+ocrlb_interp = np.zeros(y_test.shape)
+bias2 = np.zeros(y_test.shape)
+bias = np.zeros(y_test.shape)
+for i in range(17):
+    idx_gt = np.argsort(y_test[:, i])
+    y_test_sort[:, i] = y_test[idx_gt, i]
+    snr_v_sort[:,i] = snr_v[idx_gt,0]
+    ofit_sort[:,i] = ofit[idx_gt,i]
+    bias2[:,i] = np.sqrt(np.power(ofit_sort[:, i]-y_test_sort[:, i], 2))
+    bias[:, i] = ofit_sort[:, i] - y_test_sort[:, i]
+    ocrlb_sort[:,i] = ocrlb[idx_gt, i]
+    ocrlb_interp[:, i] = savgol_filter(ocrlb_sort[:, i], 51, 3)
+    # std_p_sort_y_test[:, i] = std_p[idx_gt, i]
+    # std_intrp_y_test[:, i] = savgol_filter(std_p_sort_y_test[:, i], 51, 3)
+    # pred_det_sort_aslabel[:,i] = pred_det[idx_gt, i]
+    snr_sort_idx_low[:,i] = np.nonzero(snr_v_sort[:,i] < 16.7)[0]
+    snr_sort_idx_mid[:,i] = np.nonzero((snr_v_sort[:,i] >= 16.7) & (snr_v_sort[:,i] < 28.4))[0]
+    snr_sort_idx_high[:,i] = np.nonzero(snr_v_sort[:,i] >= 28.4)[0]
+
+
+fig = plt.figure()
+plt.plot(y_test_sort[:,0], ofit_sort[:,0])
+fig = plt.figure()
+plt.plot(y_test_sort[:,0], ocrlb_sort[:,0])
+plt.plot(y_test_sort[:,0], ocrlb_interp[:,0])
+
+fig = plt.figure()
+plt.subplot(231)
+plt.plot(y_test_sort[snr_sort_idx_low[:, 0], 0], bias2[snr_sort_idx_low[:, 0],0])
+plt.subplot(232)
+plt.plot(y_test_sort[snr_sort_idx_mid[:, 0], 0], bias2[snr_sort_idx_mid[:, 0],0])
+plt.subplot(233)
+plt.plot(y_test_sort[snr_sort_idx_high[:, 0], 0], bias2[snr_sort_idx_high[:, 0],0])
+plt.subplot(234)
+plt.plot(y_test_sort[snr_sort_idx_low[:, 0], 0], ocrlb_sort[snr_sort_idx_low[:, 0],0])
+plt.subplot(235)
+plt.plot(y_test_sort[snr_sort_idx_mid[:, 0], 0], ocrlb_sort[snr_sort_idx_mid[:, 0],0])
+plt.subplot(236)
+plt.plot(y_test_sort[snr_sort_idx_high[:, 0], 0], ocrlb_sort[snr_sort_idx_high[:, 0],0])
+
+def bias_crlb_fit(index):
+    from matplotlib import gridspec
+    import seaborn as sns
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import matplotlib.patches as mpatches
+    from matplotlib.ticker import FormatStrFormatter
+    fig = plt.figure(figsize=(15, 5))
+    gs = fig.add_gridspec(2, 3, width_ratios=[1, 1, 1], height_ratios=[1, 1],
+                                               wspace=0.2, hspace=0.2)
+
+    ax0 = plt.subplot(gs[0])
+    ax0.plot(y_test_sort[snr_sort_idx_low[:, index], index], bias[snr_sort_idx_low[:, index], index])
+    ax0.plot(y_test_sort[snr_sort_idx_low[:, index], index],
+             savgol_filter(bias[snr_sort_idx_low[:, index], index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(bias[snr_sort_idx_low[:, index], index]),),
+        r'$\sigma =%.2f$' % (np.sqrt(mean_squared_error(y_test_sort[snr_sort_idx_low[:, index],index], ofit_sort[snr_sort_idx_low[:, index],index])),),))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax0.text(0.05, 0.95, textstr, transform=ax0.transAxes, verticalalignment='top', bbox=props)
+
+
+    ax1 = plt.subplot(gs[1])
+    ax1.plot(y_test_sort[snr_sort_idx_mid[:, index], index], bias[snr_sort_idx_mid[:, index], index])
+    ax1.plot(y_test_sort[snr_sort_idx_mid[:, index], index],
+             savgol_filter(bias[snr_sort_idx_mid[:, index], index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(bias[snr_sort_idx_mid[:, index], index]),),
+        r'$\sigma =%.2f$' % (np.sqrt(mean_squared_error(y_test_sort[snr_sort_idx_mid[:, index],index], ofit_sort[snr_sort_idx_mid[:, index],index])),),))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, verticalalignment='top', bbox=props)
+
+    ax2 = plt.subplot(gs[2])
+    ax2.plot(y_test_sort[snr_sort_idx_high[:, index], index], bias[snr_sort_idx_high[:, index], index])
+    ax2.plot(y_test_sort[snr_sort_idx_high[:, index], index],
+             savgol_filter(bias[snr_sort_idx_high[:, index], index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(bias[snr_sort_idx_high[:, index], index]),),
+        r'$\sigma =%.2f$' % (np.sqrt(mean_squared_error(y_test_sort[snr_sort_idx_high[:, index], index],
+                                                      ofit_sort[snr_sort_idx_high[:, index], index])),),))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax2.text(0.05, 0.95, textstr, transform=ax2.transAxes, verticalalignment='top', bbox=props)
+
+    ax3 = plt.subplot(gs[3])
+    ax3.plot(y_test_sort[snr_sort_idx_low[:, index], index], ocrlb_sort[snr_sort_idx_low[:, index], index])
+    ax3.plot(y_test_sort[snr_sort_idx_low[:, index], index],
+             savgol_filter(ocrlb_sort[snr_sort_idx_low[:, index], index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(ocrlb_sort[snr_sort_idx_low[:, index], index]),),
+        r'$\sigma =%.2f$' % (np.std(ocrlb_sort[snr_sort_idx_low[:, index], index]),)))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax3.text(0.05, 0.95, textstr, transform=ax3.transAxes, verticalalignment='top', bbox=props)
+
+    ax4 = plt.subplot(gs[4])
+    ax4.plot(y_test_sort[snr_sort_idx_mid[:, index], index], ocrlb_sort[snr_sort_idx_mid[:, index], index])
+    ax4.plot(y_test_sort[snr_sort_idx_mid[:, index], index],
+             savgol_filter(ocrlb_sort[snr_sort_idx_mid[:, index], index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(ocrlb_sort[snr_sort_idx_mid[:, index], index]),),
+        r'$\sigma =%.2f$' % (np.std(ocrlb_sort[snr_sort_idx_mid[:, index], index]),)))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax4.text(0.05, 0.95, textstr, transform=ax4.transAxes, verticalalignment='top', bbox=props)
+
+    ax5 = plt.subplot(gs[5])
+    ax5.plot(y_test_sort[snr_sort_idx_high[:, index], index], ocrlb_sort[snr_sort_idx_high[:, index], index])
+    ax5.plot(y_test_sort[snr_sort_idx_high[:, index], index],
+             savgol_filter(ocrlb_sort[snr_sort_idx_high[:, index], index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(ocrlb_sort[snr_sort_idx_high[:, index], index]),),
+        r'$\sigma =%.2f$' % (np.std(ocrlb_sort[snr_sort_idx_high[:, index], index]),)))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax5.text(0.05, 0.95, textstr, transform=ax5.transAxes, verticalalignment='top', bbox=props)
+
+    ax3.set_xlabel('Ground Truth [mM]')
+    ax4.set_xlabel('Ground Truth [mM]')
+    ax5.set_xlabel('Ground Truth [mM]')
+    ax0.set_ylabel('bias [mM]')
+    ax3.set_ylabel('CRLB [mM]')
+    ax0.set_title(metnames[index] + ' - low SNR', fontweight="bold")
+    ax1.set_title(metnames[index] + ' - mid SNR', fontweight="bold")
+    ax2.set_title(metnames[index] + ' - high SNR', fontweight="bold")
+
+    ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax2.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax3.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax4.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax5.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+
+bias_crlb_fit(ordernames[0])
+bias_crlb_fit(ordernames[6])
+bias_crlb_fit(ordernames[11])
+bias_crlb_fit(ordernames[14])

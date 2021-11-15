@@ -23,7 +23,7 @@ matplotlib.rcParams['axes.labelsize'] = 15
 input1d = 0
 md_input = 0
 flat_input = 0
-test_diff_conc_bounds = 1
+test_diff_conc_bounds = 0
 
 if md_input == 0:
     dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
@@ -32,17 +32,27 @@ if md_input == 0:
     def datatestimport():
         global dataset1D, dataset2D, nlabels, w_nlabels, snr_v, shim_v
 
-        snr_v = sio.loadmat(dest_folder + 'snr_v_TEST_0406')
-        readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST_0406.mat')
-        labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_0406.mat')
 
-        labels  = labels_import['labels_c']*64.5
-        snr_v = snr_v['snr_v']
-        shim_v = readme_SHIM['shim_v']
         # labels = np.transpose(labels,(1,0))
         if test_diff_conc_bounds == 0:
+            snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
+            readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
+            labels_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
+
+            labels = labels_import['labels_c'] * 64.5
+            snr_v = snr_v['snr_v']
+            shim_v = readme_SHIM['shim_v']
+
             nlabels, w_nlabels = labelsNorm(labels)
         else:
+            snr_v = sio.loadmat(dest_folder + 'snr_v_TEST_0208')
+            readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST_0mu.mat')
+            labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_0mu.mat')
+
+            labels = labels_import['labels_c'] * 64.5
+            snr_v = snr_v['snr_v']
+            shim_v = readme_SHIM['shim_v']
+
             labels_import_orig = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
             labels_orig = labels_import_orig['labels_c'] * 64.5
             nlabels, w_nlabels = labelsNormREDdataset(labels, labels_orig)
@@ -56,7 +66,10 @@ if md_input == 0:
 
             return dataset1D, nlabels, w_nlabels, snr_v, shim_v
         else:
-            data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST_0406.mat')
+            if test_diff_conc_bounds == 0:
+                data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
+            else:
+                data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST_0mu.mat')
             dataset2D = data_import2D['output']
 
             if flat_input:
@@ -188,8 +201,14 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
 
     mP = np.min(y)
     MP = np.max(y)
+
+
     ax2.set_xlim(np.min(y_test[:, index]) - (0.05 * m), m + (0.05 * m))
-    ax2.set_ylim(mP - (0.05*MP), MP + (0.05*MP))
+    ax2.set_ylim(np.min(y_test[:, index]) - (0.05 * m), m + (0.05 * m))
+    # ax2.set_ylim(mP - (0.05 * MP), MP + (0.05 * MP))
+    if test_diff_conc_bounds:
+        plt.axhline(np.min(y_test[:, index]), 0, 1, color = 'gray', alpha = 0.5)
+        plt.axhline(m, 0, 1, color='gray', alpha=0.5)
 
     ax0 = plt.subplot(gs[0])
     ax0.set_title(met, fontweight="bold")
@@ -202,11 +221,17 @@ def jointregression(index, met, outer=None, sharey = 0, sharex = 0):
 
     ax3 = plt.subplot(gs[3])
     sns.distplot(y, ax=ax3, vertical=True, color='tab:olive')
-    ax3.set_ylim(mP - (0.05 * MP), MP + (0.05 * MP))
+    ax3.set_ylim(np.min(y_test[:, index]) - (0.05 * m), m + (0.05 * m))
+    # ax3.set_ylim(mP - (0.05 * MP), MP + (0.05 * MP))
+    if test_diff_conc_bounds:
+        plt.axhline(np.min(y_test[:, index]), 0, 1, color = 'gray', alpha = 0.5)
+        plt.axhline(m, 0, 1, color='gray', alpha=0.5)
+
     ax3.xaxis.set_visible(False)
     ax3.yaxis.set_visible(False)
     ax3.xaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
     # ax3.hist(y, bins=20, orientation =u'horizontal')
+
 
     regr.coef_[0], r_sq, mse
     # text
@@ -536,7 +561,6 @@ if doShim:
 
     plotSHIM2x4fromindex(0)
     plotSHIM2x4fromindex(8)
-
 
 
 def scores(index):
