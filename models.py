@@ -5,19 +5,63 @@ from keras.layers import Activation, Convolution2D, MaxPooling2D, ZeroPadding2D,
 import tensorflow.keras.backend as K
 from keras import layers
 import tensorflow as tf
+import numpy as np
 
 
 def newModel(dim, type, subtype):
-    # global inputs
-    # type = '2D'
-    #   type ==
-    #       shallowCNN
-    #       deepCNN
-    #       ResNet
-    #       inceptionNet
-    #       EfficientNet
+    """
+
+    :param dim: typology of data treated by the network:
+                2D: bidimensional spectroscopic information: SPECTROGRAMS
+                1D: monodimensional spectroscopic information: SPECTRA
+    :param type: network main-name -> overall architecture
+    :param subtype: network sub-name -> specific parameter design
+    :return: compiled CNN model with desired configuration
+
+    STRUCTURE:
+    dim = 2D
+        type =  shallowCNN
+             subtype =  ShallowRELU
+                        ShallowRELU_ks3
+                        ShallowELU_conv2x
+                        ShallowELU_conv2x_hp
+                        ShallowELU
+                        ShallowELU_hp
+                        ShallowELU_hp_MC
+                        ShallowELU_hp_nw
+                        ShallowInception
+                        ShallowInception_v2
+                        SrrInception_v2
+                        ShallowInception_fact
+                        ShallowInception_fact_v2
+        type =  deepCNN
+             subtype =  deepCNN_2D_ks
+                        deepCNN_2D
+        type =  ResNet
+             subtype =  ResNet_2D_ks
+                        ResNet_2D
+                        ResNet_2D_deep
+                        ResNet50
+        type =  inceptionNet
+             subtype =  Inceptionv4_rr_2D
+                        SrrInception_v2
+        type =  EfficientNet
+             subtype =  B7
+        type =  dualpath_net
+             subtype =  shallowELU
+    dim = 1D
+        type =  ResNet
+             subtype =  ResNet_fed
+                        ResNet_fed_hp
+        type =  deepCNN
+             subtype =  DeepCNN_fed
+                        DeepCNN_fed_hp
+        type =  InceptionNet
+             subtype =  InceptionNet-1D
+    """
 
     externalmodel = 0
+    customloss = 1
     K.set_image_data_format('channels_last')
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
@@ -94,8 +138,6 @@ def newModel(dim, type, subtype):
                 IdeConvBlock(filters_input, filters_output, kernel_size[1],
                              maxP(ResConvBlock(filters_input, filters_output, kernel_size[0], x), **poolargs)),
                 **poolargs)), **poolargs)
-
-
 
         if type == 'ShallowCNN':
             img_rows, img_cols = 128, 32
@@ -501,7 +543,7 @@ def newModel(dim, type, subtype):
                 print('net type: ResNet_2D_deep')
                 # -----------------------------------------------------------------
 
-            if subtype == 'ResNet50'"":
+            if subtype == 'ResNet50':
                 from resnet50model import ResNet50
                 externalmodel = 1
                 model = ResNet50(input_shape = input_shape, classes=17)
@@ -608,6 +650,92 @@ def newModel(dim, type, subtype):
                 lrate = 2e-4
 
                 print('net type: EfficientNetB7')
+
+        if type == 'dualpath_net':
+            img_rows, img_cols = 128, 32
+            channels = 2
+            # input_shape = (channels, img_rows, img_cols)
+            input_shape = (img_rows, img_cols, channels)
+            inputs = Input(shape=input_shape)
+
+            if subtype == 'ShallowELU':
+
+                # architecture from ESMRMB 2021 abstract
+                p = 17  # y_train.shape[1] -> output concentration number of metabolites + water ref.
+
+                l1 = maxP(convBlock_ks_elu(50, (9, 9), inputs), **poolargs)
+                l2 = sDrop(maxP(convBlock_ks_elu(100, (5, 5), l1), **poolargs), 0.1)
+                l3 = sDrop(maxP(convBlock_ks_elu(150, (3, 3), l2), **poolargs), 0.15)
+                mu = lin(norm(dense(p, flatten(l3))))
+
+                l12 = maxP(convBlock_ks_elu(50, (9, 9), inputs), **poolargs)
+                l22 = sDrop(maxP(convBlock_ks_elu(100, (5, 5), l12), **poolargs), 0.1)
+                l32 = sDrop(maxP(convBlock_ks_elu(150, (3, 3), l22), **poolargs), 0.15)
+                sigma = lin(norm(dense(p, flatten(l32))))
+                #sigma == T1, extended here in case we assume nott indipendent variables and covariance matrix is not diagonal
+                # T2 = lin(norm(dense((p*(p-1)/2), flatten(l32))))
+                # T = concat(T1,T2)
+
+                model_mu = Model(inputs=inputs, outputs=mu)
+                model_cov = Model(inputs=inputs, outputs=sigma)
+                outputs = concat(model_mu.output, model_cov.output)
+                # model = Model(inputs=inputs, outputs=out)
+                lrate = 2e-3 #donot start at 2e-4 here
+
+                def wmse_loss():
+                    def loss(ytrue, ypreds):
+                        n_dims = int(int(ypreds.shape[1]) / 2)
+                        mu = ypreds[:, 0:n_dims]
+                        logsigma = ypreds[:, n_dims:]
+
+                        loss1 = tf.reduce_mean(tf.exp(-logsigma) * tf.square((mu - ytrue)))
+                        loss2 = tf.reduce_mean(logsigma)
+                        loss = .5 * (loss1 + loss2)
+
+                        return loss
+
+                    return loss
+
+                def gauss_loss():
+                    def loss(ytrue, ypreds):
+                        """
+                            NB: exploration of sigma as measure of STD is not convincing. Whereas results are comparable with wmse_loss
+
+                            Keras implmementation of multivariate Gaussian negative loglikelihood loss function.
+                            This implementation implies diagonal covariance matrix.
+
+                            Parameters
+                            ----------
+                            ytrue: tf.tensor of shape [n_samples, n_dims]
+                                ground truth values
+                            ypreds: tf.tensor of shape [n_samples, n_dims*2]
+                                predicted mu and logsigma values (e.g. by your neural network)
+
+                            Returns
+                            -------
+                            neg_log_likelihood: float
+                                negative loglikelihood averaged over samples
+
+                            This loss can then be used as a target loss for any keras model, e.g.:
+                                model.compile(loss=gaussian_nll, optimizer='Adam')
+
+                            """
+
+                        n_dims = int(int(ypreds.shape[1]) / 2)
+                        mu = ypreds[:, 0:n_dims]
+                        logsigma = ypreds[:, n_dims:]
+
+                        mse = -0.5 * K.sum(K.square((ytrue - mu) / K.exp(logsigma)), axis=1)
+                        sigma_trace = -K.sum(logsigma, axis=1)
+                        log2pi = -0.5 * n_dims * np.log(2 * np.pi) #constant term that can be removed
+
+                        log_likelihood = mse + sigma_trace + log2pi
+
+                        return K.mean(-log_likelihood)
+
+                    return loss
+
+                model_loss = wmse_loss()
 
     if dim == '1D':
 
@@ -840,10 +968,17 @@ def newModel(dim, type, subtype):
         model = Model(inputs=inputs, outputs=outputs)
 
     # --- Compile model
-    model.compile(
-        optimizer=tf.keras.optimizers.Adam(learning_rate=lrate),  # 2e-4 as starter
-        loss=tf.keras.losses.MeanSquaredError(),
-        experimental_run_tf_function=False)
+    if customloss == 0:
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=lrate),
+            loss=tf.keras.losses.MeanSquaredError(),
+            experimental_run_tf_function=False)
+    else:
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(learning_rate=lrate),
+            loss=model_loss,
+            experimental_run_tf_function=False)
+
 
     print(model.summary())
     return model

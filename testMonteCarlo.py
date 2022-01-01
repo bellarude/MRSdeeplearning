@@ -172,6 +172,9 @@ y_test_bin_sort_sigma = np.zeros(y_test.shape)
 pred_det_sort_aslabel = np.zeros(y_test.shape)
 mean_p_bias = np.zeros(y_test.shape)
 mean_p_bias_interp = np.zeros(y_test.shape)
+accuracy_mc = np.zeros(y_test.shape)
+accuracy_mc_interp = np.zeros(y_test.shape)
+accuracy_data_bin = np.zeros(y_test.shape)
 
 for i in range(17):
     idx = np.argsort(mean_p[:,i])
@@ -204,7 +207,6 @@ for i in range(17):
         #y_test_bin_sort_sigma[idx_start:idx_stop + 1, i] = np.sqrt(mean_squared_error(pred_det_sort_aslabel[idx_start:idx_stop + 1, i], y_test_sort[idx_start:idx_stop + 1, i]))
         # after ISMRM22 bias definition (with sign information)
         y_test_bin_sort_sigma[idx_start:idx_stop + 1, i] = np.mean(pred_det_sort_aslabel[idx_start:idx_stop + 1, i] - y_test_sort[idx_start:idx_stop + 1, i])
-
 
 
 regr = linear_model.LinearRegression()
@@ -538,6 +540,104 @@ def plotREGR2x4fromindex_mcSTD(i):
 
 plotREGR2x4fromindex_mcSTD(0)
 plotREGR2x4fromindex_mcSTD(8)
+
+# trial for calibration plots
+# accuracy definition (after Mauricio's talk)
+accuracy_mc = np.zeros(std_p.shape)
+confidence_mc = std_p
+
+bincal = 50
+accuracy_dt = np.zeros(np.shape(std_p))
+confidence_dt = np.zeros(np.shape(std_p))
+for m in range(17):
+    for sig in range(2500):
+        th = std_p[sig,m]
+        accuracy_mc[sig, m] = np.nonzero(np.abs(p[sig, m, :] - y_test[sig, m]) < th)[0].size / p.shape[2]
+        # accuracy_mc[sig, m] = np.abs(p[sig, m, :] - y_test[sig, m])
+
+
+    for b in range(bincal):
+        idx_start = np.int((y_test.shape[0] / bincal) * b)
+        idx_stop = np.int(((y_test.shape[0] / bincal) * (b + 1)) - 1)
+        th = np.std(pred_det_sort_aslabel[idx_start:idx_stop + 1, m])
+        confidence_dt[idx_start:idx_stop + 1, m] = th  # spread of point spread function (deterministic prediction)
+        accuracy_dt[idx_start:idx_stop + 1, m] = np.nonzero(np.abs(pred_det_sort_aslabel[idx_start:idx_stop + 1, m] - y_test_sort[idx_start:idx_stop + 1, m]) < th)[0].size / (np.shape(y_test)[0]/bincal)
+
+
+def calibration_plots(index, met, outer=None, sharey = 0, sharex = 0):
+    from matplotlib import gridspec
+    import seaborn as sns
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import matplotlib.patches as mpatches
+    from matplotlib.ticker import FormatStrFormatter
+
+    # fig = plt.figure()
+    if outer == None:
+        gs = fig.add_gridspec(2, 1, width_ratios=[1], height_ratios=[1, 1],
+                                               wspace=0.2, hspace=0.5)
+    else:
+        gs = gridspec.GridSpecFromSubplotSpec(2, 1, subplot_spec = outer, width_ratios=[1], height_ratios=[1, 1],
+                                               wspace=0.2, hspace=0.5)
+
+    idd = np.argsort(confidence_mc[:, index])
+    conf_mc = confidence_mc[idd, index]
+    acc_mc = accuracy_mc[idd, index]
+    ident_mc = [np.min(conf_mc), np.max(conf_mc)]
+    acc_mc_interp = savgol_filter(acc_mc, 101, 3)
+
+
+    idd = np.argsort(confidence_dt[:, index])
+    conf_dt = confidence_dt[idd, index]
+    acc_dt = accuracy_dt[idd, index]
+    ident_dt = [np.min(conf_dt), np.max(conf_dt)]
+
+    ax0 = plt.subplot(gs[0])
+    ax0.set_title(met, fontweight="bold")
+    # ax5.set_xlim(0 - (0.05 * m), m + (0.05 * m))
+    ax0.plot(conf_mc, acc_mc, 'lightgreen')
+    ax0.plot(conf_mc, acc_mc_interp, 'red')
+    # ax0.plot(ident_mc, ident_mc, '--', linewidth=3, color='k')
+    # ax5.xaxis.set_visible(False)
+    ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax0.axhline(0.68, 0, 1, color='gray', alpha=0.5)
+
+    ax1 = plt.subplot(gs[1])
+    # ax6.set_xlim(0 - (0.05 * m), m + (0.05 * m))
+    ax1.plot(conf_dt, acc_dt, 'dodgerblue')
+    # ax1.plot(ident_dt, ident_dt, '--', linewidth=3, color='k')
+    # ax6.plot(preds_sort_label[:, index], y_test_bin_sort_sigma[:, index], 'blue')
+    # ax6.xaxis.set_visible(False)
+    ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax1.axhline(0.68, 0, 1, color='gray', alpha=0.5)
+
+
+    # ax1.legend(handles = [p1, patch2, patch3, patch4, patch_t1, patch_t2, patch_t3, patch_t4],bbox_to_anchor=(0.5, 0.3, 0.5, 0.5))
+    if outer == None:
+        # cbaxes = inset_axes(ax3, width="30%", height="3%", loc=2)
+        # plt.colorbar(p1 ,cax=cbaxes, orientation ='horizontal')
+        ax0.set_ylabel('Model Conf [%]')
+        ax1.set_ylabel('Data Conf [%]')
+        # ax5.set_xlabel('$\sigma$ [mM]')
+        ax0.set_xlabel('$\sigma$ - MC')
+        ax1.set_xlabel('$\sigma$ - data bin')
+        # ax3.set_ylabel('Avg. Pred. [mM]')
+
+    # if outer != None:
+    #     if sharex:
+    #         ax7.set_xlabel('Ground Truth [mM]')
+    #         # ax5.set_xlabel('$\sigma$ [mM]')
+    #     if sharey:
+    #         ax5.set_ylabel('bias|x [mM]', rotation=0, labelpad=50)
+    #         ax6.set_ylabel('std|x [mM]', rotation=0, labelpad=50)
+    #         ax8.set_ylabel('$\sqrt{MSE}$|x,w [mM]', rotation=0, labelpad=70)
+    #         ax7.set_ylabel('spread [mM]|x,w', rotation=0, labelpad=70)
+    #         # ax3.set_ylabel('Avg. Pred. [mM]')
+
+fig = plt.figure()
+i=0
+calibration_plots(order[i], metnames[order[i]], outer=None, sharey = 0, sharex = 0)
+
+
 
 
 # SNR plots

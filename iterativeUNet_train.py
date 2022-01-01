@@ -22,7 +22,16 @@ from kerastuner.tuners import BayesianOptimization
 
 import time
 
-same = 0 # same == 1 means having same network architecture for all metabolites
+# interval to train metabolites, help in debug or developing phase:
+# full range of metabolites is defined in [0, len(metnames)]
+met2train_start = 0
+met2train_stop = 1
+
+same = 1 #same == 1 means having same network architecture for all metabolites
+
+#NB 01.01.2022: same = 0 is not supported for dualpath_net: dualpath architecture has not yet been optimized
+dualpath_net = 1
+
 
 def dataimport(index):
     global y_train, y_val, y_test, X_train, X_val, X_test
@@ -186,6 +195,7 @@ def newModelhp(met):
     return modelRR
 
 def newModel():
+
     # -----------------------------------------------------------------------------
     # RR-Unet 2xconv1
     # -----------------------------------------------------------------------------
@@ -210,8 +220,6 @@ def newModel():
     outputs = tf.keras.layers.Cropping1D(cropping=(pad, pad))(conv(l10, kernel_size=3, filters=1))
     lrate = 1e-3
 
-
-
     # --- Create model
     modelRR = Model(inputs=inputs, outputs=outputs)
 
@@ -225,17 +233,108 @@ def newModel():
     print(modelRR.summary())
     return modelRR
 
+def new_dualpath_model():
+
+    # -----------------------------------------------------------------------------
+    # RR-Unet 2xconv1 -> 2x nets with mu and sigma estimation
+    # -----------------------------------------------------------------------------
+
+    # ----- mu network
+    # -----------------------------------------------------------------------------
+
+    # --- Define contracting layers
+    #
+    l1 = conv1(64, conv1(32, tf.keras.layers.ZeroPadding1D(padding=(pad))(inputs)))
+    l2 = conv1(128, conv1(64, conv2(32, l1)))
+    l3 = conv1(256, conv1(128, conv2(48, l2)))
+    l4 = conv1(512, conv1(256, conv2(64, l3)))
+    l5 = conv1(256, conv1(512, conv2(80, l4)))
+
+    # --- Define expanding layers
+    l6 = tran2(256, l5)
+
+    # --- Define expanding layers
+    l7 = tran2(128, tran1(64, tran1(64, concat(l4, l6))))
+    l8 = tran2(64, tran1(48, tran1(48, concat(l3, l7))))
+    l9 = tran2(32, tran1(32, tran1(32, concat(l2, l8))))
+    l10 = conv1_lin(32, conv1(32, l9))
+
+    # --- Create logits
+    mu = tf.keras.layers.Cropping1D(cropping=(pad, pad))(conv(l10, kernel_size=3, filters=1))
+
+    # ----- sigma network
+    # -----------------------------------------------------------------------------
+
+    # --- Define contracting layers
+    #
+    l11 = conv1(64, conv1(32, tf.keras.layers.ZeroPadding1D(padding=(pad))(inputs)))
+    l21 = conv1(128, conv1(64, conv2(32, l11)))
+    l31 = conv1(256, conv1(128, conv2(48, l21)))
+    l41 = conv1(512, conv1(256, conv2(64, l31)))
+    l51 = conv1(256, conv1(512, conv2(80, l41)))
+
+    # --- Define expanding layers
+    l61 = tran2(256, l51)
+
+    # --- Define expanding layers
+    l71 = tran2(128, tran1(64, tran1(64, concat(l41, l61))))
+    l81 = tran2(64, tran1(48, tran1(48, concat(l31, l71))))
+    l91 = tran2(32, tran1(32, tran1(32, concat(l21, l81))))
+    l101 = conv1_lin(32, conv1(32, l91))
+
+    # --- Create logits
+    sigma = tf.keras.layers.Cropping1D(cropping=(pad, pad))(conv(l101, kernel_size=3, filters=1))
+
+    assert sigma.shape[1] == 1406, sigma.shape[1]
+    assert sigma.shape[2] == 1, sigma.shape[2]
+
+    # --- Create model
+    model_mu = Model(inputs=inputs, outputs=mu)
+    model_cov = Model(inputs=inputs, outputs=sigma)
+    outputs = concat(model_mu.output, model_cov.output)
+    model = Model(inputs=inputs, outputs=outputs)
+
+    lrate = 1e-3
+
+    def wmse_loss_unet():
+        def loss(ytrue, ypreds):
+            # n_dims = int(int(ypreds.shape[1]) / 2)
+            mu = ypreds[:, :, 0] #1st channel is mu
+            logsigma = ypreds[:, :, 1] #2nd channel is sigma
+
+            loss1 = tf.reduce_mean(tf.exp(-logsigma) * tf.square((mu - ytrue)))
+            loss2 = tf.reduce_mean(logsigma)
+            loss = .5 * (loss1 + loss2)
+
+            return loss
+
+        return loss
+
+    # --- Compile model
+    model.compile(
+        optimizer=tf.keras.optimizers.Adam(learning_rate=lrate),
+        loss=wmse_loss_unet(),
+        experimental_run_tf_function=False
+    )
+
+    print(model.summary())
+    return model
+
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
 
 order = [8, 10, 1, 11, 12, 2, 13, 14, 15, 4, 16, 9, 5, 17, 3, 6, 7]
 
-for idx in range(2, len(metnames)):
+for idx in range(met2train_start, met2train_stop ):
     dataimport(order[idx])
 
     if same:
-        modelRR = newModel()
-        spec = ''
+        if dualpath_net:
+            modelRR = new_dualpath_model()
+            spec = '_dualpath'
+        else:
+            modelRR = newModel()
+            spec = ''
     else:
         modelRR = newModelhp(metnames[idx])
         spec = '_doc'
@@ -258,7 +357,7 @@ for idx in range(2, len(metnames)):
 
         # selected channel 0 to keep only Re(spectrogram)
         history = modelRR.fit(X_train, y_train,
-                              epochs=100,
+                              epochs=200,
                               batch_size=50,
                               shuffle=True,
                               validation_data=(X_val, y_val),
@@ -267,13 +366,13 @@ for idx in range(2, len(metnames)):
                               verbose=1)
 
     textMe('UNet training for ' + metnames[idx] + ' is done')
-    # fig = plt.figure(figsize=(10, 10))
-    # # summarize history for loss
-    # plt.plot(history.history['loss'], label='loss')
-    # plt.plot(history.history['val_loss'], label='val_loss')
-    # plt.title('model losses')
-    # plt.xlabel('epoch')
-    # plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+    fig = plt.figure(figsize=(10, 10))
+    # summarize history for loss
+    plt.plot(history.history['loss'], label='loss')
+    plt.plot(history.history['val_loss'], label='val_loss')
+    plt.title('model losses')
+    plt.xlabel('epoch')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
     # plt.show()
-    # print('loss: ' + str(history.history['loss'][-1]))
-    # print('val_loss:' + str(history.history['val_loss'][-1]))
+    print('loss: ' + str(history.history['loss'][-1]))
+    print('val_loss:' + str(history.history['val_loss'][-1]))

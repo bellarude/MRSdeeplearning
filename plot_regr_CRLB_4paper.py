@@ -913,3 +913,55 @@ bias_crlb_fit(ordernames[0])
 bias_crlb_fit(ordernames[6])
 bias_crlb_fit(ordernames[11])
 bias_crlb_fit(ordernames[14])
+
+def bias_crlb_fit_all(index):
+    from matplotlib import gridspec
+    import seaborn as sns
+    from mpl_toolkits.axes_grid1.inset_locator import inset_axes
+    import matplotlib.patches as mpatches
+    from matplotlib.ticker import FormatStrFormatter
+    fig = plt.figure(figsize=(4.5, 5))
+    gs = fig.add_gridspec(2, 1, width_ratios=[1], height_ratios=[1, 1],
+                                               wspace=0.2, hspace=0.2)
+
+    ax0 = plt.subplot(gs[0])
+    ax0.plot(y_test_sort[:, index], bias[:, index])
+    ax0.plot(y_test_sort[:, index],
+             savgol_filter(bias[:, index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(bias[:, index]),),
+        r'$\sigma =%.2f$' % (np.sqrt(mean_squared_error(y_test_sort[:,index], ofit_sort[:,index])),),))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax0.text(0.05, 0.95, textstr, transform=ax0.transAxes, verticalalignment='top', bbox=props)
+
+    ax1 = plt.subplot(gs[1])
+    ax1.plot(y_test_sort[:, index], ocrlb_sort[:, index])
+    ax1.plot(y_test_sort[:, index],
+             savgol_filter(ocrlb_sort[:, index], 51, 3), linewidth=3)
+
+    # text
+    textstr = '\n'.join((
+        r'$\mu =%.2f$' % (np.mean(ocrlb_sort[:, index]),),
+        r'$\sigma =%.2f$' % (np.std(ocrlb_sort[:, index]),)))
+    props = dict(boxstyle='round', facecolor='white', alpha=0.8)
+    # ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, fontsize=10,
+    #         verticalalignment='top', bbox=props)
+    ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes, verticalalignment='top', bbox=props)
+
+
+    ax1.set_xlabel('Ground Truth [mM]')
+    ax0.set_ylabel('bias [mM]')
+    ax1.set_ylabel('CRLB [mM]')
+    ax0.set_title(metnames[index], fontweight="bold")
+
+    ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+    ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
+
+bias_crlb_fit_all(ordernames[0])
+bias_crlb_fit_all(ordernames[6])
+bias_crlb_fit_all(ordernames[8])
+bias_crlb_fit_all(ordernames[14])
