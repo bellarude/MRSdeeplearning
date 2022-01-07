@@ -139,7 +139,43 @@ def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sh
     ax1.axis('off')
     # gs.tight_layout()
 
-def blandAltmann_Shim(fig, gt, pred, shim_v, metname, snr_v=[], outer=None, sharey = 0, sharex = 0):
+def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr):
+    """
+    extends jointregression plot in its basis configuration (missing optional parameters) to a 2x4 fashion via subplot
+    :param i: index from where to start plotting. it plots from i to i+8
+    :param gt: Mxm matrix of ground truth labels, M: # of samples, m: # of metabolites
+    :param pred: Mxm matrix of predictions
+    :param order: vector of ordering how to print
+    :param metnames: vecotr with label names for each metabolite
+    :param snr: eventual snr vector Mx1
+    :return: plotting 2x4 via subplot of 8 regression plots for 8 metabolites
+    """
+    fig = plt.figure(figsize = (40,10))
+
+    widths = 2*np.ones(4)
+    heights = 2*np.ones(2)
+    spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                              height_ratios=heights)
+
+    for row in range(2):
+        for col in range(4):
+            ax = fig.add_subplot(spec[row, col])
+            if (i == 0) or (i == 8):
+                jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
+                                outer=spec[row, col], sharey=1)
+            elif (i == 4) or (i == 12):
+                jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
+                                outer=spec[row, col], sharex=1, sharey=1)
+            elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+                jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
+                                outer=spec[row, col], sharex=1)
+            else:
+                jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
+                                outer=spec[row, col])
+
+            i += 1
+
+def blandAltmann_Shim(fig, gt, pred, metname, shim_v, snr_v=[], outer=None, sharey = 0, sharex = 0):
     """
     :param fig: figure where to plot
     :param gt: ground truth vector Nx1
@@ -219,6 +255,42 @@ def blandAltmann_Shim(fig, gt, pred, shim_v, metname, snr_v=[], outer=None, shar
     ax0.xaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
     ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.2f'))
     ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
+
+def plotSHIM2x4fromindex(i, gt, pred, order, metnames, shim, snr):
+    """
+    extends blandAltmann_SNR plot in its basis configuration (missing optional parameters) to a 2x4 fashion via subplot
+    :param i: index from where to start plotting. it plots from i to i+8
+    :param gt: Mxm matrix of ground truth labels, M: # of samples, m: # of metabolites
+    :param pred: Mxm matrix of predictions
+    :param order: vector of ordering how to print
+    :param metnames: vecotr with label names for each metabolite
+    :param shim: shim values Mx1 
+    :param snr: eventual snr vector Mx1
+    :return: plotting 2x4 via subplot of 8 regression plots for 8 metabolites
+    """
+    fig = plt.figure(figsize = (40,10))
+
+    widths = 2*np.ones(4)
+    heights = 2*np.ones(2)
+    spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                              height_ratios=heights)
+
+    for row in range(2):
+        for col in range(4):
+            ax = fig.add_subplot(spec[row, col])
+            if (i == 0) or (i == 8):
+                blandAltmann_Shim(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], shim_v = shim, snr_v=snr, outer=spec[row, col], sharey=1)
+            elif (i == 4) or (i == 12):
+                blandAltmann_Shim(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], shim_v = shim, snr_v=snr,
+                                outer=spec[row, col], sharex=1, sharey=1)
+            elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+                blandAltmann_Shim(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], shim_v = shim, snr_v=snr,
+                                outer=spec[row, col], sharex=1)
+            else:
+                blandAltmann_Shim(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], shim_v = shim, snr_v=snr,
+                                outer=spec[row, col])
+
+            i += 1
 
 def blandAltmann_SNR(fig, gt, pred, metname, snr_v, outer=None, xlabel='noise', sharey=0, sharex=0):
     """
@@ -312,6 +384,40 @@ def blandAltmann_SNR(fig, gt, pred, metname, snr_v, outer=None, xlabel='noise', 
     ax0.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
     ax1.yaxis.set_major_formatter(FormatStrFormatter('%0.1f'))
 
+def plotSNR2x4fromindex(i, gt, pred, order, metnames, snr):
+    """
+    extends blandAltmann_SNR plot in its basis configuration (missing optional parameters) to a 2x4 fashion via subplot
+    :param i: index from where to start plotting. it plots from i to i+8
+    :param gt: Mxm matrix of ground truth labels, M: # of samples, m: # of metabolites
+    :param pred: Mxm matrix of predictions
+    :param order: vector of ordering how to print
+    :param metnames: vecotr with label names for each metabolite
+    :param snr: eventual snr vector Mx1
+    :return: plotting 2x4 via subplot of 8 regression plots for 8 metabolites
+    """
+    fig = plt.figure(figsize = (40,10))
+
+    widths = 2*np.ones(4)
+    heights = 2*np.ones(2)
+    spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                              height_ratios=heights)
+
+    for row in range(2):
+        for col in range(4):
+            ax = fig.add_subplot(spec[row, col])
+            if (i == 0) or (i == 8):
+                blandAltmann_SNR(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr, outer=spec[row, col], sharey=1)
+            elif (i == 4) or (i == 12):
+                blandAltmann_SNR(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
+                                outer=spec[row, col], sharex=1, sharey=1)
+            elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+                blandAltmann_SNR(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
+                                outer=spec[row, col], sharex=1)
+            else:
+                blandAltmann_SNR(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
+                                outer=spec[row, col])
+
+            i += 1
 
 def sigma_distro(fig, sigma, metname, outer=None, sharey = 0, sharex = 0):
     """
@@ -373,3 +479,53 @@ def sigma_vs_gt(fig, gt, sigma, metname, outer=None, sharey = 0, sharex = 0):
             ax0.set_ylabel('std [mM]')
 
     ax0.set_title(metname, fontweight="bold")
+
+def reliability_plot(fig, pred01, nbins, metname, outer=None, sharey = 0, sharex = 0):
+    """
+    :param fig: figure where to plot
+    :param sigma: vector Nx1 of absolute std -> absolute given that they refer to [0-1] prediction
+    :param metname: name of the metabolite
+    :param outer: 1 if the plot is a subplot
+    :param sharey: 1 if y label must not be printed
+    :param sharex: 1 if the x label must not be printed
+    :return: distribution plots of std referenced to absolute DL prediction in interval [0-1]
+    """
+
+    if outer == None:
+        gs = fig.add_gridspec(1, 1, width_ratios=[1], height_ratios=[1],
+                              wspace=0.05, hspace=0.05)
+    else:
+        gs = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer, width_ratios=[1], height_ratios=[1],
+                                              wspace=0.05, hspace=0.05)
+
+    idx = np.argsort(pred01)
+    pred01_sort = pred01[idx]
+    th = np.arange(0, 1 + 1 / nbins, 1 / nbins)
+    accuracy = np.ones((nbins + 1,))
+
+    ece = 0
+    for i in range(nbins):
+        # accuracy[i] = np.min(np.argwhere(pred01_sort > th[i])) / pred01.shape[0]
+        accuracy[i] = len(np.argwhere(pred01 <= th[i])) / pred01.shape[0]
+        # ece = ece + ((len(np.argwhere(pred01_sort > th[i])) / pred01.shape[0]) * np.abs(accuracy[i] - th[i]))
+        ece = ece + accuracy[i] * np.abs(accuracy[i] - th[i])
+
+    ax1 = plt.subplot(gs[0])
+    ax1.plot(th, accuracy, drawstyle="steps")
+    ax1.fill_between(th, accuracy, step="pre", alpha=0.4)
+    ax1.plot(th, accuracy, 'o')
+    ident = [0, 1]
+    ax1.plot(ident, ident, '--')
+
+    textstr = 'ECE=%.2f' % ece
+    props = dict(boxstyle='round', facecolor='white', alpha=0.5)
+    ax1.text(0.05, 0.95, textstr, transform=ax1.transAxes,
+             verticalalignment='top', bbox=props)
+
+    if outer != None:
+        if sharex :
+            ax1.set_xlabel('Confidence')
+        if sharey:
+            ax1.set_ylabel('Accuracy')
+
+    ax1.set_title(metname, fontweight="bold")

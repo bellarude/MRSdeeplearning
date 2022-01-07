@@ -173,136 +173,22 @@ doShim = 1
 # fig = plt.figure()
 # jointregression(fig, y_test[:, 0], pred[:, 0], metnames[0], snr_v=snr_v)
 
-def plotREGR2x4fromindex(i):
-    fig = plt.figure(figsize = (40,10))
+if doSNR:
+    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v)
+    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v)
+else:
+    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr=[])
+    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr=[])
 
-    widths = 2*np.ones(4)
-    heights = 2*np.ones(2)
-    spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-                              height_ratios=heights)
-
-    if doSNR:
-        for row in range(2):
-            for col in range(4):
-                ax = fig.add_subplot(spec[row,col])
-                if (i==0) or (i==8):
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v, outer=spec[row,col], sharey=1)
-                elif (i==4) or (i==12):
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v, outer=spec[row,col], sharex=1, sharey=1)
-                elif (i==5) or (i==6) or (i==7) or (i==13) or (i==14) or (i==15):
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v, outer=spec[row, col], sharex=1)
-                else:
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v, outer=spec[row, col])
-
-                i += 1
-
-    else:
-        for row in range(2):
-            for col in range(4):
-                ax = fig.add_subplot(spec[row, col])
-                if (i == 0) or (i == 8):
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=[],
-                                    outer=spec[row, col], sharey=1)
-                elif (i == 4) or (i == 12):
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=[],
-                                    outer=spec[row, col], sharex=1, sharey=1)
-                elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=[],
-                                    outer=spec[row, col], sharex=1)
-                else:
-                    jointregression(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=[],
-                                    outer=spec[row, col])
-
-                i += 1
-
-plotREGR2x4fromindex(0)
-plotREGR2x4fromindex(8)
 
 if doShim:
+    if doSNR:
+        plotSHIM2x4fromindex(0, y_test, pred, order, metnames, shim_v, snr_v)
+        plotSHIM2x4fromindex(8, y_test, pred, order, metnames, shim_v, snr_v)
+    else:
+        plotSHIM2x4fromindex(0, y_test, pred, order, metnames, shim_v, snr=[])
+        plotSHIM2x4fromindex(8, y_test, pred, order, metnames, shim_v, snr=[])
 
-    # single plots to check
-    # fig = plt.figure()
-    # blandAltmann_Shim(fig, y_test[:, 0], pred[:, 0], shim_v=shim_v, metname=metnames[0], snr_v=snr_v)
-
-    def plotSHIM2x4fromindex(i):
-        fig = plt.figure(figsize = (40,20))
-
-        widths = 2*np.ones(4)
-        heights = 2*np.ones(2)
-        spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-                                  height_ratios=heights)
-
-        if doSNR:
-            for row in range(2):
-                for col in range(4):
-                    ax = fig.add_subplot(spec[row,col])
-
-                    if (i==0) or (i==8):
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=snr_v,
-                                          outer=spec[row, col], sharey=1)
-                    elif (i == 4) or (i == 12):
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=snr_v, outer=spec[row, col], sharex=1, sharey=1)
-                    elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=snr_v, outer=spec[row, col], sharex=1)
-                    else:
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=snr_v, outer=spec[row, col])
-
-                    i += 1
-        else:
-            for row in range(2):
-                for col in range(4):
-                    ax = fig.add_subplot(spec[row,col])
-
-                    if (i==0) or (i==8):
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=[],
-                                          outer=spec[row, col], sharey=1)
-                    elif (i == 4) or (i == 12):
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=[], outer=spec[row, col], sharex=1, sharey=1)
-                    elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=[], outer=spec[row, col], sharex=1)
-                    else:
-                        blandAltmann_Shim(fig, y_test[:, order[i]], pred[:, order[i]], shim_v=shim_v, metname=metnames[order[i]], snr_v=[], outer=spec[row, col])
-
-                    i += 1
-
-    plotSHIM2x4fromindex(0)
-    plotSHIM2x4fromindex(8)
-
-if doSNR:
-
-    # single plots to check
-    # fig = plt.figure()
-    # blandAltmann_SNR(fig, y_test[:, 0], pred[:, 0], metnames[0], snr_v=snr_v)
-
-    def plotSNR2x4fromindex(i):
-        fig = plt.figure(figsize=(40, 20))
-
-        widths = 2 * np.ones(4)
-        heights = 2 * np.ones(2)
-        spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-                                height_ratios=heights)
-        for row in range(2):
-            for col in range(4):
-                ax = fig.add_subplot(spec[row, col])
-
-                if (i == 0) or (i == 8):
-                    blandAltmann_SNR(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v, outer=spec[row, col], xlabel='noise', sharey=1)
-
-                elif (i == 4) or (i == 12):
-                    blandAltmann_SNR(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v,
-                                     outer=spec[row, col], xlabel='noise', sharex=1, sharey=1)
-                elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
-                    blandAltmann_SNR(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v,
-                                     outer=spec[row, col], xlabel='noise', sharex=1)
-                else:
-                    blandAltmann_SNR(fig, y_test[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr_v,
-                                     outer=spec[row, col], xlabel='noise')
-
-                i += 1
-
-
-    plotSNR2x4fromindex(0)
-    plotSNR2x4fromindex(8)
 
 # ----- savings of scores
 from util import save_scores_tab

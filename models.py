@@ -14,6 +14,7 @@ def newModel(dim, type, subtype):
     :param dim: typology of data treated by the network:
                 2D: bidimensional spectroscopic information: SPECTROGRAMS
                 1D: monodimensional spectroscopic information: SPECTRA
+                1DtoBasis: input -> SPECTRA, output -> single metabolite BASIS SET
     :param type: network main-name -> overall architecture
     :param subtype: network sub-name -> specific parameter design
     :return: compiled CNN model with desired configuration
@@ -61,7 +62,7 @@ def newModel(dim, type, subtype):
     """
 
     externalmodel = 0
-    customloss = 1
+    customloss = 0
     K.set_image_data_format('channels_last')
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
@@ -960,8 +961,6 @@ def newModel(dim, type, subtype):
 
                 lrate = 2e-4
                 # -----------------------------------------------------------------
-    # else:
-    #     print('Model dimensionality of data is wrong')
 
     # --- Create model
     if externalmodel == 0:
