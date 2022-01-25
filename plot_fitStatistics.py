@@ -24,9 +24,9 @@ metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'G
 
 amsm_gpu = 1
 if amsm_gpu:
-    inputFolder = r'C:\Users\Rudy\Desktop\FitAidProject+RAWdata\rawfit_areapos_lorfix_testset20'
+    inputFolder = r'C:\Users\Rudy\Desktop\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
 else:
-    inputFolder = r'C:\Users\Rudy\Documents\WMD\01_Project 2 - Deep Learning\FitAidProject+RAWdata\rawfit_areaboundLikeSIM_lorfix_testset20'
+    inputFolder = r'C:\Users\Rudy\Documents\WMD\01_Project 2 - Deep Learning\FitAidProject+RAWdata\fitAid_average_project_boundAreLikeSIM_fixLor'
 fileName = r'\fitStatistics.xlsx'
 
 fit = pd.read_excel(inputFolder + fileName, sheet_name= 'area', header=None)

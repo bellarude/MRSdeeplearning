@@ -40,7 +40,7 @@ def mu_sigma(output):
     sigma = T1 + T2
     return mu, sigma
 
-model = newModel(dim='2D', type='dualpath_net', subtype='ShallowELU')
+model = newModel(dim='2D', type='dualpath_net', subtype='ShallowELU', customloss=1)
 
 from data_load_norm import dataimport2D, labelsimport, labelsNorm, ilabelsNorm, inputConcat2D, dataimport2D_md, labelsimport_md, dataimport2Dhres
 

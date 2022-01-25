@@ -8,15 +8,16 @@ import tensorflow as tf
 import numpy as np
 
 
-def newModel(dim, type, subtype):
+def newModel(dim, type, subtype, externalmodel=0, customloss=0):
     """
-
     :param dim: typology of data treated by the network:
                 2D: bidimensional spectroscopic information: SPECTROGRAMS
                 1D: monodimensional spectroscopic information: SPECTRA
                 1DtoBasis: input -> SPECTRA, output -> single metabolite BASIS SET
     :param type: network main-name -> overall architecture
     :param subtype: network sub-name -> specific parameter design
+    :param externalmodel: used (==1) to compile a model from another file
+    :param customloss: used (==1) when a custom loss is needed
     :return: compiled CNN model with desired configuration
 
     STRUCTURE:
@@ -61,8 +62,6 @@ def newModel(dim, type, subtype):
              subtype =  InceptionNet-1D
     """
 
-    externalmodel = 0
-    customloss = 0
     K.set_image_data_format('channels_last')
     channel_axis = 1 if K.image_data_format() == 'channels_first' else -1
 
@@ -546,7 +545,7 @@ def newModel(dim, type, subtype):
 
             if subtype == 'ResNet50':
                 from resnet50model import ResNet50
-                externalmodel = 1
+                # externalmodel = 1 is required
                 model = ResNet50(input_shape = input_shape, classes=17)
                 lrate = 2e-4
 

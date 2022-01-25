@@ -23,7 +23,12 @@ matplotlib.rcParams['axes.labelsize'] = 15
 input1d = 0
 md_input = 0
 flat_input = 0
-test_diff_conc_bounds = 0
+test_diff_conc_bounds = 1
+reliability = 0
+
+doSave = 1
+if doSave:
+    saving_spec = '_test0406'
 
 if md_input == 0:
     dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
@@ -45,9 +50,9 @@ if md_input == 0:
 
             nlabels, w_nlabels = labelsNorm(labels)
         else:
-            snr_v = sio.loadmat(dest_folder + 'snr_v_TEST_0208')
-            readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST_0mu.mat')
-            labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_0mu.mat')
+            snr_v = sio.loadmat(dest_folder + 'snr_v_TEST_0406')
+            readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST_0406.mat')
+            labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_0406.mat')
 
             labels = labels_import['labels_c'] * 64.5
             snr_v = snr_v['snr_v']
@@ -69,7 +74,7 @@ if md_input == 0:
             if test_diff_conc_bounds == 0:
                 data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST.mat')
             else:
-                data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST_0mu.mat')
+                data_import2D = sio.loadmat(dest_folder + 'dataset_spgram_TEST_0406.mat')
             dataset2D = data_import2D['output']
 
             if flat_input:
@@ -153,8 +158,13 @@ doSNR = 1
 doShim = 1
 
 from util_plot import plotREGR2x4fromindex, plotSNR2x4fromindex, plotSHIM2x4fromindex
-plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v)
-plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v)
+
+if test_diff_conc_bounds:
+    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v, yscale = 1, pred_ref = 1)
+    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v, yscale = 1, pred_ref = 1)
+else:
+    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v)
+    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v)
 
 if doSNR:
     plotSNR2x4fromindex(0, y_test, pred, order, metnames, snr_v)
@@ -170,189 +180,192 @@ if doShim:
 
 
 
-def scores(index):
-    # ----------------------------------------------
-    x = y_test[:, index].reshape(-1, 1)
-    y = pred[:, index]
-    regr.fit(x, y)
-    lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
-    mse = mean_squared_error(x, y)
-    r_sq = regr.score(x, y)
-
-    return regr.coef_[0], regr.intercept_, r_sq, mse
+# def scores(index):
+#     # ----------------------------------------------
+#     x = y_test[:, index].reshape(-1, 1)
+#     y = pred[:, index]
+#     regr.fit(x, y)
+#     lin = regr.predict(np.arange(0, np.max(y_test[:, index]), 0.01).reshape(-1, 1))
+#     mse = mean_squared_error(x, y)
+#     r_sq = regr.score(x, y)
+#
+#     return regr.coef_[0], regr.intercept_, r_sq, mse
 
 # ----- savings of scores
-from util import save_scores_tab
-filename = net_name
-filepath = outpath + folder + subfolder
-save_scores_tab(filename, filepath, y_test, pred)
-
-from util_plot import reliability_plot
-
-def plotRELIABILITY2x4fromindex(i, pred):
-    fig = plt.figure(figsize=(40, 20))
-
-    widths = 2 * np.ones(4)
-    heights = 2 * np.ones(2)
-    spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-                            height_ratios=heights)
-
-    for row in range(2):
-        for col in range(4):
-            ax = fig.add_subplot(spec[row, col])
-
-            if (i == 0) or (i == 8):
-                reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col], sharey=1)
-            elif (i == 4) or (i == 12):
-                reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col], sharex=1, sharey=1)
-            elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
-                reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col], sharex=1)
-            else:
-                reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col])
-
-            i += 1
-
-plotRELIABILITY2x4fromindex(0, pred_abs)
-plotRELIABILITY2x4fromindex(8, pred_abs)
-
-# --- calibration
-from data_load_norm import dataimport2D, labelsimport, labelsNorm
-
-#NB: I assume the training done with dataset_20, nevertheless I start with validation set to calibrate.
-folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
-dataname = 'dataset_spgram.mat'
-labelsname = 'labels_c.mat'
-X_train, X_val = dataimport2D(folder, dataname, 'dataset')
-y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
-
-ny_train, w_y_train = labelsNorm(y_train)
-ny_val, w_y_val = labelsNorm(y_val)
-
-pred_val = model.predict(X_val)  # normalized [0-1] absolute concentrations prediction
-
-def recalibration_models(pred_val, ny_val, plot=0):
-    """
-    isotonic regression algorithm that recalibrate predictions from a neutral network model recalibrating the system
-    inspired by:
-    1. Kuleshow V. et al, Accurate uncertainties for Deep LEarning using Calibrated Regression, 35th ICML 2018
-    2. Niculescu-Mizil A. et al, Predicting good probabilities with supervised learning, 22nd ICML 2005
-
-    :param pred_val: Nxm  matrix with absolute [0,1] prediction from a given model on validation dataset; N:number of sample, n: number of metabolites
-    :param ny_val: Nxm matrix of ground truth labels on validation set
-    :param plot: boolean, =1 if the user wants to monitor the calibration plot pre and post isotonic regression fit.
-    :return: list with m isotonic regression models that corrects the prediction of the given model
-    """
-    iso_reg = []
-    for met in range(pred_val.shape[1]):
-        pred01 = pred_val[:, met]
-        label01 = ny_val[:, met]
-
-        idx = np.argsort(pred01)
-        pred01_sort = pred01[idx]
-        idx = np.argsort(label01)
-        th = label01[idx]
-        p_hat = np.zeros(pred01_sort.shape)
-
-        for i in range(pred01_sort.shape[0]):
-            p_hat[i] = len(np.argwhere(pred01_sort <= th[i])) / pred01.shape[0]
+if doSave:
+    from util import save_scores_tab
+    filename = net_name + saving_spec
+    filepath = outpath + folder + subfolder
+    save_scores_tab(filename, filepath, y_test, pred)
 
 
+if reliability:
+    from util_plot import reliability_plot
 
-        from sklearn.isotonic import IsotonicRegression
-        iso_reg.append(IsotonicRegression(out_of_bounds='clip').fit(th, p_hat))
+    def plotRELIABILITY2x4fromindex(i, pred):
+        fig = plt.figure(figsize=(40, 20))
 
-        if plot:
-            fig = plt.figure()
-            plt.title('Reliability diagram - idx: ' + str(met))
-            plt.plot(th, p_hat, label='DL calibration')
-            cal_pred_plot= iso_reg[-1].predict(pred01_sort)
-            plt.plot(th, cal_pred_plot, label='recalibrated')
-            plt.legend(loc="upper left")
-            plt.xlabel('predicted value')
-            plt.ylabel('fraction of positive')
+        widths = 2 * np.ones(4)
+        heights = 2 * np.ones(2)
+        spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+                                height_ratios=heights)
 
-    return iso_reg
+        for row in range(2):
+            for col in range(4):
+                ax = fig.add_subplot(spec[row, col])
 
-iso_regr_model = recalibration_models(pred_val, ny_val, plot=0)
+                if (i == 0) or (i == 8):
+                    reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col], sharey=1)
+                elif (i == 4) or (i == 12):
+                    reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col], sharex=1, sharey=1)
+                elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+                    reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col], sharex=1)
+                else:
+                    reliability_plot(fig, pred[:,order[i]], 10, metnames[order[i]], outer=spec[row, col])
 
-# test set recalibration
-pred_abs_cal = np.zeros(pred_abs.shape)
+                i += 1
 
-# pred_abs[pred_abs<0]=0
-# pred_abs[pred_abs>1]=1
+    plotRELIABILITY2x4fromindex(0, pred_abs)
+    plotRELIABILITY2x4fromindex(8, pred_abs)
 
-for met in range(pred_abs.shape[1]):
-    pred_abs_cal[:, met] = iso_regr_model[met].predict(pred_abs[:, met])
+    # --- calibration
+    from data_load_norm import dataimport2D, labelsimport, labelsNorm
 
+    #NB: I assume the training done with dataset_20, nevertheless I start with validation set to calibrate.
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    dataname = 'dataset_spgram.mat'
+    labelsname = 'labels_c.mat'
+    X_train, X_val = dataimport2D(folder, dataname, 'dataset')
+    y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
 
-pred_un_cal = np.empty(pred_abs.shape)  # un-normalized absolute concentrations
-pred_cal = np.empty(pred_abs.shape)  # relative un normalized concentrations (referred to water prediction)
+    ny_train, w_y_train = labelsNorm(y_train)
+    ny_val, w_y_val = labelsNorm(y_val)
 
-pred_un_cal = ilabelsNorm(pred_abs_cal, w_nlabels)
+    pred_val = model.predict(X_val)  # normalized [0-1] absolute concentrations prediction
 
-for i in range(17):
-    pred_cal[:, i] = pred_un_cal[:, i] / pred_un_cal[:, 16] * 64.5
+    def recalibration_models(pred_val, ny_val, plot=0):
+        """
+        isotonic regression algorithm that recalibrate predictions from a neutral network model recalibrating the system
+        inspired by:
+        1. Kuleshow V. et al, Accurate uncertainties for Deep LEarning using Calibrated Regression, 35th ICML 2018
+        2. Niculescu-Mizil A. et al, Predicting good probabilities with supervised learning, 22nd ICML 2005
+
+        :param pred_val: Nxm  matrix with absolute [0,1] prediction from a given model on validation dataset; N:number of sample, n: number of metabolites
+        :param ny_val: Nxm matrix of ground truth labels on validation set
+        :param plot: boolean, =1 if the user wants to monitor the calibration plot pre and post isotonic regression fit.
+        :return: list with m isotonic regression models that corrects the prediction of the given model
+        """
+        iso_reg = []
+        for met in range(pred_val.shape[1]):
+            pred01 = pred_val[:, met]
+            label01 = ny_val[:, met]
+
+            idx = np.argsort(pred01)
+            pred01_sort = pred01[idx]
+            idx = np.argsort(label01)
+            th = label01[idx]
+            p_hat = np.zeros(pred01_sort.shape)
+
+            for i in range(pred01_sort.shape[0]):
+                p_hat[i] = len(np.argwhere(pred01_sort <= th[i])) / pred01.shape[0]
 
 
 
-# -------------------------------------------------------------
-# plot CALIBRATED regression 2x4
-# -------------------------------------------------------------
-# from util_plot import jointregression
-# def plotREGR_CAL_2x4fromindex(i):
-#     fig = plt.figure(figsize = (40,10))
-#
-#     widths = 2*np.ones(4)
-#     heights = 2*np.ones(2)
-#     spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
-#                               height_ratios=heights)
-#     for row in range(2):
-#         for col in range(4):
-#             ax = fig.add_subplot(spec[row,col])
-#             if (i == 0) or (i == 8):
-#                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
-#                                 outer=spec[row, col], sharey=1)
-#             elif (i == 4) or (i == 12):
-#                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
-#                                 outer=spec[row, col], sharex=1, sharey=1)
-#             elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
-#                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
-#                                 outer=spec[row, col], sharex=1)
-#             else:
-#                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
-#                                 outer=spec[row, col])
-#
-#             i += 1
-#
-# plotREGR_CAL_2x4fromindex(0)
-# plotREGR_CAL_2x4fromindex(8)
+            from sklearn.isotonic import IsotonicRegression
+            iso_reg.append(IsotonicRegression(out_of_bounds='clip').fit(th, p_hat))
 
-plotREGR2x4fromindex(0, y_test, pred_cal, order, metnames, snr_v)
-plotREGR2x4fromindex(8, y_test, pred_cal, order, metnames, snr_v)
+            if plot:
+                fig = plt.figure()
+                plt.title('Reliability diagram - idx: ' + str(met))
+                plt.plot(th, p_hat, label='DL calibration')
+                cal_pred_plot= iso_reg[-1].predict(pred01_sort)
+                plt.plot(th, cal_pred_plot, label='recalibrated')
+                plt.legend(loc="upper left")
+                plt.xlabel('predicted value')
+                plt.ylabel('fraction of positive')
 
-plotRELIABILITY2x4fromindex(0, pred_abs_cal)
-plotRELIABILITY2x4fromindex(8, pred_abs_cal)
+        return iso_reg
+
+    iso_regr_model = recalibration_models(pred_val, ny_val, plot=0)
+
+    # test set recalibration
+    pred_abs_cal = np.zeros(pred_abs.shape)
+
+    # pred_abs[pred_abs<0]=0
+    # pred_abs[pred_abs>1]=1
+
+    for met in range(pred_abs.shape[1]):
+        pred_abs_cal[:, met] = iso_regr_model[met].predict(pred_abs[:, met])
 
 
-if doSNR:
-    plotSNR2x4fromindex(0, y_test, pred_cal, order, metnames, snr_v)
-    plotSNR2x4fromindex(8, y_test, pred_cal, order, metnames, snr_v)
+    pred_un_cal = np.empty(pred_abs.shape)  # un-normalized absolute concentrations
+    pred_cal = np.empty(pred_abs.shape)  # relative un normalized concentrations (referred to water prediction)
 
-if doShim:
+    pred_un_cal = ilabelsNorm(pred_abs_cal, w_nlabels)
+
+    for i in range(17):
+        pred_cal[:, i] = pred_un_cal[:, i] / pred_un_cal[:, 16] * 64.5
+
+
+
+    # -------------------------------------------------------------
+    # plot CALIBRATED regression 2x4
+    # -------------------------------------------------------------
+    # from util_plot import jointregression
+    # def plotREGR_CAL_2x4fromindex(i):
+    #     fig = plt.figure(figsize = (40,10))
+    #
+    #     widths = 2*np.ones(4)
+    #     heights = 2*np.ones(2)
+    #     spec = fig.add_gridspec(ncols=4, nrows=2, width_ratios=widths,
+    #                               height_ratios=heights)
+    #     for row in range(2):
+    #         for col in range(4):
+    #             ax = fig.add_subplot(spec[row,col])
+    #             if (i == 0) or (i == 8):
+    #                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
+    #                                 outer=spec[row, col], sharey=1)
+    #             elif (i == 4) or (i == 12):
+    #                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
+    #                                 outer=spec[row, col], sharex=1, sharey=1)
+    #             elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
+    #                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
+    #                                 outer=spec[row, col], sharex=1)
+    #             else:
+    #                 jointregression(fig, y_test[:, order[i]], pred_cal[:, order[i]], metnames[order[i]], snr_v=snr_v,
+    #                                 outer=spec[row, col])
+    #
+    #             i += 1
+    #
+    # plotREGR_CAL_2x4fromindex(0)
+    # plotREGR_CAL_2x4fromindex(8)
+
+    plotREGR2x4fromindex(0, y_test, pred_cal, order, metnames, snr_v)
+    plotREGR2x4fromindex(8, y_test, pred_cal, order, metnames, snr_v)
+
+    plotRELIABILITY2x4fromindex(0, pred_abs_cal)
+    plotRELIABILITY2x4fromindex(8, pred_abs_cal)
+
+
     if doSNR:
-        plotSHIM2x4fromindex(0, y_test, pred_cal, order, metnames, shim_v, snr_v)
-        plotSHIM2x4fromindex(8, y_test, pred_cal, order, metnames, shim_v, snr_v)
-    else:
-        plotSHIM2x4fromindex(0, y_test, pred_cal, order, metnames, shim_v, snr=[])
-        plotSHIM2x4fromindex(8, y_test, pred_cal, order, metnames, shim_v, snr=[])
+        plotSNR2x4fromindex(0, y_test, pred_cal, order, metnames, snr_v)
+        plotSNR2x4fromindex(8, y_test, pred_cal, order, metnames, snr_v)
+
+    if doShim:
+        if doSNR:
+            plotSHIM2x4fromindex(0, y_test, pred_cal, order, metnames, shim_v, snr_v)
+            plotSHIM2x4fromindex(8, y_test, pred_cal, order, metnames, shim_v, snr_v)
+        else:
+            plotSHIM2x4fromindex(0, y_test, pred_cal, order, metnames, shim_v, snr=[])
+            plotSHIM2x4fromindex(8, y_test, pred_cal, order, metnames, shim_v, snr=[])
 
 
-#--------------
+    #--------------
 
-delta = pred_cal - pred
+    delta = pred_cal - pred
 
-fig = plt.figure()
-plt.scatter(snr_v,delta[:,13])
+    fig = plt.figure()
+    plt.scatter(snr_v,delta[:,13])
 
-fig = plt.figure()
-plt.scatter(pred[:,13], pred_cal[:,13])
+    fig = plt.figure()
+    plt.scatter(pred[:,13], pred_cal[:,13])

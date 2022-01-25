@@ -139,7 +139,7 @@ def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sh
     ax1.axis('off')
     # gs.tight_layout()
 
-def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr):
+def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr, yscale = 0, pred_ref = 0):
     """
     extends jointregression plot in its basis configuration (missing optional parameters) to a 2x4 fashion via subplot
     :param i: index from where to start plotting. it plots from i to i+8
@@ -162,16 +162,16 @@ def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr):
             ax = fig.add_subplot(spec[row, col])
             if (i == 0) or (i == 8):
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col], sharey=1)
+                                outer=spec[row, col], sharey=1, sharex=0, yscale=yscale, pred_ref=pred_ref)
             elif (i == 4) or (i == 12):
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col], sharex=1, sharey=1)
+                                outer=spec[row, col], sharex=1, sharey=1, yscale=yscale, pred_ref=pred_ref)
             elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col], sharex=1)
+                                outer=spec[row, col], sharex=1, sharey=0, yscale=yscale, pred_ref=pred_ref)
             else:
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col])
+                                outer=spec[row, col], sharex=0, sharey=0, yscale=yscale, pred_ref=pred_ref)
 
             i += 1
 

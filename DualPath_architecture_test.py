@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsNormREDdataset, labelsimport_md
 from models import newModel
-from util_plot import jointregression, blandAltmann_Shim, blandAltmann_SNR, sigma_distro, sigma_vs_gt
+from util_plot import plotREGR2x4fromindex, plotSNR2x4fromindex, plotSHIM2x4fromindex, sigma_distro, sigma_vs_gt
 
 import matplotlib
 matplotlib.rcParams['xtick.labelsize'] = 12
@@ -20,6 +20,9 @@ input1d = 0
 md_input = 1
 flat_input = 0
 test_diff_conc_bounds = 0
+
+doSNR = 0
+doShim = 1
 
 if md_input == 0:
     dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
@@ -108,7 +111,7 @@ else:
     nlabels, w_nlabels = labelsNorm(y_test)
     dataset2D = X_test
 
-model = newModel(dim='2D', type='dualpath_net', subtype='ShallowELU')
+model = newModel(dim='2D', type='dualpath_net', subtype='ShallowELU', customloss=1)
 
 
 # def mu_sigma(output):
@@ -159,15 +162,14 @@ sigma = np.exp(logsigma) #NB: this refers to diagonal of covariance matrix = sig
 std = np.sqrt(sigma)
 
 sigma_un = ilabelsNorm(sigma, w_nlabels)
-std_un = np.sqrt(sigma_un)
+std_un = ilabelsNorm(std, w_nlabels)
 
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
 
 order = [2,0,4,12,7,6,1,8,9,14,10,3,13,15,11,5] # to order metabolites plot from good to bad
 
-doSNR = 0
-doShim = 1
+
 
 # single plots to check
 # fig = plt.figure()
@@ -180,6 +182,9 @@ else:
     plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr=[])
     plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr=[])
 
+if doSNR:
+    plotSNR2x4fromindex(0, y_test, pred, order, metnames, snr_v)
+    plotSNR2x4fromindex(8, y_test, pred, order, metnames, snr_v)
 
 if doShim:
     if doSNR:
