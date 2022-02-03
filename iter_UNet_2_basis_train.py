@@ -44,13 +44,20 @@ def dataimport(index):
     data_import = sio.loadmat(dest_folder + 'spectra_kor_wat.mat')
     labels_import = sio.loadmat(dest_folder + 'labels_kor_' + str(index) + '_NOwat.mat')
 
-    dataset = data_import['spectra_kor']
-    labels = labels_import['labels_kor_' + str(index)]
 
+    dataset = data_import['spectra_kor']
+    scaling = np.max(dataset)
+
+    labels = labels_import['labels_kor_' + str(index)]
+    scaling_labels = np.max(labels)
+
+    dataset = dataset/scaling
     X_train = dataset[0:18000, :]
     X_val = dataset[18000:20000, :]
     X_test = dataset[19000:20000, :]  # unused
 
+    #normalization try
+    labels = labels/scaling_labels
     y_train = labels[0:18000, :]
     y_val = labels[18000:20000, :]
     y_test = labels[19000:20000, :]
@@ -66,10 +73,10 @@ for idx in range(met2train_start, met2train_stop ):
     if same:
         if dualpath_net:
             model = newModel(type=1)
-            spec = '_dualpath'
+            spec = '_dualpath_elu_nonorm'
         else:
             model = newModel(type=0)
-            spec = ''
+            spec = '_220126'
     else:
         model = newModel(met=metnames[idx], type=0)
         spec = '_doc'
@@ -88,7 +95,7 @@ for idx in range(met2train_start, met2train_stop ):
         es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
 
         # selected channel 0 to keep only Re(spectrogram)
-        history = modelRR.fit(X_train, y_train,
+        history = model.fit(X_train, y_train,
                               epochs=200,
                               batch_size=50,
                               shuffle=True,
@@ -105,6 +112,18 @@ for idx in range(met2train_start, met2train_stop ):
     plt.title('model losses')
     plt.xlabel('epoch')
     plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-    # plt.show()
+    plt.show()
     print('loss: ' + str(history.history['loss'][-1]))
     print('val_loss:' + str(history.history['val_loss'][-1]))
+
+    pred_train = model.predict(X_train)
+
+    for idplt in [0,10,100]:
+        fig = plt.figure()
+        plt.subplot(3, 1, 1)
+        plt.plot(np.flip(X_train[idplt, :]))
+        plt.subplot(3, 1, 2)
+        plt.plot(np.flip(y_train[idplt, :]))
+        plt.plot(np.flip(pred_train[idplt, :, 0]))
+        plt.subplot(3, 1, 3)
+        plt.plot(np.flip(np.exp(pred_train[idplt, :, 1])))

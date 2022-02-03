@@ -52,15 +52,21 @@ def newModel(met=[], type=0):
     conv1 = lambda filters, x: relu(norm(conv_s(x, filters=filters, strides=1)))
     conv1_lin = lambda filters, x: norm(conv_s(x, filters=filters, strides=1))
     conv2 = lambda filters, x: relu(norm(conv_s(x, filters=filters, strides=2)))
+
+    conv1_elu = lambda filters, x: elu(norm(conv_s(x, filters=filters, strides=1)))
+    conv2_elu = lambda filters, x: elu(norm(conv_s(x, filters=filters, strides=2)))
     # --- Define single transpose
     tran = lambda x, filters, strides: layers.Conv1DTranspose(filters=filters, strides=strides, kernel_size=3,
                                                               padding='same')(x)
     # --- Define transpose block
     tran1 = lambda filters, x: relu(norm(tran(x, filters, strides=1)))
     tran2 = lambda filters, x: relu(norm(tran(x, filters, strides=2)))
+    tran1_elu = lambda filters, x: elu(norm(tran(x, filters, strides=1)))
+    tran2_elu = lambda filters, x: elu(norm(tran(x, filters, strides=2)))
 
     norm = lambda x: layers.BatchNormalization(axis=channel_axis)(x)
     relu = lambda x: layers.ReLU()(x)
+    elu = lambda x: layers.ELU()(x)
     maxP = lambda x, pool_size, strides: layers.MaxPooling1D(pool_size=pool_size, strides=strides)(x)
 
     flatten = lambda x: layers.Flatten()(x)
@@ -124,6 +130,12 @@ def newModel(met=[], type=0):
             # ----- mu network
             # -----------------------------------------------------------------------------
 
+            #RR 220201 nonlinearity trial
+            conv1 = conv1_elu
+            conv2 = conv2_elu
+            tran1 = tran1_elu
+            tran2 = tran2_elu
+
             # --- Define contracting layers
             #
             l1 = conv1(64, conv1(32, tf.keras.layers.ZeroPadding1D(padding=(pad))(inputs)))
@@ -139,7 +151,7 @@ def newModel(met=[], type=0):
             l7 = tran2(128, tran1(64, tran1(64, concat(l4, l6))))
             l8 = tran2(64, tran1(48, tran1(48, concat(l3, l7))))
             l9 = tran2(32, tran1(32, tran1(32, concat(l2, l8))))
-            l10 = conv1_lin(32, conv1(32, l9))
+            l10 = conv1(32, conv1(32, l9)) #RR 280122 from lin to relu
 
             # --- Create logits
             mu = tf.keras.layers.Cropping1D(cropping=(pad, pad))(conv(l10, kernel_size=3, filters=1))
@@ -173,6 +185,8 @@ def newModel(met=[], type=0):
             # --- Create model
             model_mu = Model(inputs=inputs, outputs=mu)
             model_cov = Model(inputs=inputs, outputs=sigma)
+
+            # model_mu.load_weights("C:/Users/Rudy/Desktop/DL_models/net_type/unet/UNet_tCho_NOwat.best.hdf5")
             outputs = concat(model_mu.output, model_cov.output)
 
             lrate = 1e-3
@@ -190,6 +204,7 @@ def newModel(met=[], type=0):
                     return loss
 
                 return loss
+
 
             loss_f = wmse_loss_unet()
 

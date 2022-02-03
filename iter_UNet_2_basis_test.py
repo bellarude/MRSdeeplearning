@@ -41,14 +41,14 @@ def dataimport(dest_folder, index):
     labels_import = sio.loadmat(dest_folder + 'labels_kor_' + str(index) + '_TEST_NOwat.mat')
     labels = labels_import['labels_kor_' + str(index)]
     return labels
-
-
+#
+#
 data_import = sio.loadmat(dest_folder + 'spectra_kor_TEST_wat.mat')
 conc_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
 snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
 readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
-
-dataset = data_import['spectra_kor']
+#
+X_test = data_import['spectra_kor']
 conc = conc_import['labels_c'] * 64.5  # mM
 snr_v = snr_v['snr_v']
 shim_v = readme_SHIM['shim_v']
@@ -64,14 +64,14 @@ tf.debugging.set_log_device_placement(True)
 loss = []
 pred = []
 labels_list = []
-X_test = dataset
+# X_test = dataset
 for idx in range(met2train_start, met2train_stop):
     labels = dataimport(dest_folder, order[idx])
-
+    # dataimport(order[idx])
     if same:
         if dualpath_net:
             model = newModel(type=1)
-            spec = '_dualpath'
+            spec = '_dualpath_elu_nonorm'
         else:
             model = newModel(type=0)
             spec = ''
@@ -95,18 +95,43 @@ for idx in range(met2train_start, met2train_stop):
     labels_list.append(y_test)
 
 
-pred_sum = np.empty((X_test.shape[0], 17))
-labels_sum = np.empty((X_test.shape[0], 17))
-for idx in range(met2train_start, met2train_stop):
-    for smp in range(0, X_test.shape[0]):
-        pred_sum[smp, idx] = np.sum(pred[idx][smp, :, 0])
-        labels_sum[smp, idx] = np.sum(labels_list[idx][smp, :])
+# pred_sum = np.empty((X_test.shape[0], 17))
+# labels_sum = np.empty((X_test.shape[0], 17))
+# for idx in range(met2train_start, met2train_stop):
+#     for smp in range(0, X_test.shape[0]):
+#         pred_sum[smp, idx] = np.sum(pred[idx][smp, :, 0])
+#         labels_sum[smp, idx] = np.sum(labels_list[idx][smp, :])
+
+# check areas for only 1 network (ie 1 met)!
+pred_sum = np.empty((X_test.shape[0], 1))
+labels_sum = np.empty((X_test.shape[0], 1))
+for smp in range(0, X_test.shape[0]):
+    pred_sum[smp] = np.sum(pred[0][smp, :, 0])
+    labels_sum[smp] = np.sum(labels_list[0][smp, :])
 
 file_name = output_folder + subfolder + "new_pred_list.pkl"
 
 open_file = open(file_name, "wb")
 pickle.dump(pred_sum, open_file)
 open_file.close()
+#
+# loss_train = model.evaluate(X_train, y_train, verbose=0)
+# pred_train = model.predict(X_train)
+
+
+# fig=plt.figure()
+# plt.subplot(2,1,1)
+# plt.plot(np.flip(X_train[100,:]))
+# plt.subplot(2,1,2)
+# plt.plot(np.flip(y_train[100,:]))
+# plt.plot(np.flip(pred_train[100,:,0]))
+
+fig=plt.figure()
+plt.subplot(2,1,1)
+plt.plot(np.flip(X_test[100,:]))
+plt.subplot(2,1,2)
+plt.plot(np.flip(y_test[100,:]))
+plt.plot(np.flip(pred[0][100,:,0]))
 
 # we need to scale them in 0-1 otherwise plotting is a pain
 def norm_sum(input):
@@ -117,6 +142,10 @@ def norm_sum(input):
 
 npred_sum = norm_sum(pred_sum)
 nlabels_sum = norm_sum(labels_sum)
+
+fig = plt.figure()
+jointregression(fig, nlabels_sum, npred_sum, metnames[0],
+                        snr_v=snr_v)
 
 def rel2wat(input):
     output = np.empty(input.shape)

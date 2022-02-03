@@ -33,15 +33,15 @@ resize_input = 0
 hres = 0
 
 if md_input == 0:
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/'
-    dataname = 'dataset_spgram_nw.mat'
-    labelsname = 'labels_c_nw.mat'
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/'
+    dataname = 'dataset_spgram.mat'
+    labelsname = 'labels_c.mat'
 
     if hres:
         X_train, X_val = dataimport2Dhres(folder, dataname, 'dataset')
         y_train, y_val = labelsimporthres(folder, labelsname, 'labels_c')
     else:
-        X_train, X_val = dataimport2D(folder, dataname, 'dataset_nw')
+        X_train, X_val = dataimport2D(folder, dataname, 'dataset')
         y_train, y_val = labelsimport(folder, labelsname, 'labels_c')
 
 
@@ -56,12 +56,12 @@ else:
     # datasetX --> output_noisy
     # labelsY --> output_gt
 
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/'
-    filenames = ['zoomedSpgram_pred_1.mat',
-                 'zoomedSpgram_pred_2.mat',
-                 'zoomedSpgram_pred_3.mat',
-                 'zoomedSpgram_pred_4.mat']
-    keyname = 'output'
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/'
+    filenames = ['zoomedSpgram_datasetX_1.mat',
+                 'zoomedSpgram_datasetX_2.mat',
+                 'zoomedSpgram_datasetX_3.mat',
+                 'zoomedSpgram_datasetX_4.mat']
+    keyname = 'output_noisy'
 
     X_train, X_val, X_test = dataimport2D_md(folder, filenames, keyname)
 
@@ -86,11 +86,11 @@ if resize_input:
     X_val = tf.image.resize(X_val, (224, 224))
 
 def training():
-    times2train = 10
+    times2train = 1
     outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-    folder = "water_reference/"
+    folder = "net_type/"
     subfolder = ""
-    net_name = "ShallowNet-2D2c-hp-nw"
+    net_name = "ShallowNet-2D2c-hp-miccai"
 
     from keras.callbacks import ReduceLROnPlateau
 
@@ -98,7 +98,7 @@ def training():
     for i in range(times2train):
         start = time.time()
 
-        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp_nw')
+        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
         # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
         checkpoint_path = outpath + folder + subfolder + net_name + "-" + str(i) + ".best.hdf5"
 
@@ -132,7 +132,7 @@ def training():
         end = time.time()
         elapsedtime = (end - start) / 3600  # in hours
 
-        textMe(str(i) + '. training DONE, time -> ' + '{0:.2f}'.format(elapsedtime) + 'h, val loss->' + '{0:.5f}'.format(history.history['val_loss'][-1]) + ', epochs->' + '{0:.0f}'.format(len(history.epoch)))
+        # textMe(str(i) + '. training DONE, time -> ' + '{0:.2f}'.format(elapsedtime) + 'h, val loss->' + '{0:.5f}'.format(history.history['val_loss'][-1]) + ', epochs->' + '{0:.0f}'.format(len(history.epoch)))
 
         # otherwise times2trainit stops the loop ove
         if times2train == 1:
