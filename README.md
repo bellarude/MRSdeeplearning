@@ -12,7 +12,9 @@
     <a href="https://www.python.org/">
         <img src="https://img.shields.io/badge/python-v3-brightgreen.svg"
             alt="python"></a> &nbsp;
-    <a href="https://github.com/nicoloceneda/Python-edu/graphs/commit-activity">
+    <a href="https://github.com/bellarude/Python-edu/graphs/commit-activity">
         <img src="https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg"
             alt="issues"></a> &nbsp;
+    <a><img alt="GitHub repo size" src="https://img.shields.io/github/repo-size/bellarude/MRSdeeplearning?label=size"> </a> &nbsp;
+    <a><img alt="GitHub last commit" src="https://img.shields.io/github/last-commit/bellarude/MRSdeeplearning" alt="GitHub repo size"> </a> &nbsp;
 </p>
