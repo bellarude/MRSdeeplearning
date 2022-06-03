@@ -1,4 +1,4 @@
-# Supervised Learning Models
+# MRSdeeplearning
 
 *Author*: Rudy Rizzo \
 *Contact*: rudy.rizzo@insel.ch \
