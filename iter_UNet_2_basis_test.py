@@ -23,14 +23,14 @@ import pickle
 # interval to train metabolites, help in debug or developing phase:
 # full range of metabolites is defined in [0, len(metnames)=17] = [0,1,2,3,4,...,16]
 met2train_start = 0
-met2train_stop = 1
+met2train_stop = 17
 
-same = 1 #same == 1 means having same network architecture for all metabolites
+same = 0 #same == 1 means having same network architecture for all metabolites
 #NB 01.01.2022: same = 0 is not supported for dualpath_net: dualpath architecture has not yet been optimized
-dualpath_net = 1
+dualpath_net = 0
 
-doSNR=1
-doShim=1
+doSNR=0
+doShim=0
 doSavings=0
 
 os.environ["KERAS_BACKEND"] = "theano"
@@ -103,17 +103,18 @@ for idx in range(met2train_start, met2train_stop):
 #         labels_sum[smp, idx] = np.sum(labels_list[idx][smp, :])
 
 # check areas for only 1 network (ie 1 met)!
-pred_sum = np.empty((X_test.shape[0], 1))
-labels_sum = np.empty((X_test.shape[0], 1))
-for smp in range(0, X_test.shape[0]):
-    pred_sum[smp] = np.sum(pred[0][smp, :, 0])
-    labels_sum[smp] = np.sum(labels_list[0][smp, :])
+pred_sum = np.empty((X_test.shape[0], 17))
+labels_sum = np.empty((X_test.shape[0], 17))
+for mm in range(0, 17):
+    for smp in range(0, X_test.shape[0]):
+        pred_sum[smp, mm] = np.sum(pred[mm][smp, :, 0])
+        labels_sum[smp, mm] = np.sum(labels_list[mm][smp, :])
 
-file_name = output_folder + subfolder + "new_pred_list.pkl"
+#file_name = output_folder + subfolder + "new_pred_list.pkl"
 
-open_file = open(file_name, "wb")
-pickle.dump(pred_sum, open_file)
-open_file.close()
+#open_file = open(file_name, "wb")
+#pickle.dump(pred_sum, open_file)
+#open_file.close()
 #
 # loss_train = model.evaluate(X_train, y_train, verbose=0)
 # pred_train = model.predict(X_train)
@@ -336,3 +337,16 @@ if doSavings:
 # plt.plot(np.flip(labels_list[2][0,:] - pred[2][0,:,0]), 'r')
 # plt.ylim(-1000, 9000)
 
+import pandas as pd
+filename = "UNet_label"
+outpath = "C:/Users/Rudy/Desktop/DL_models/"
+folder = "net_type/"
+subfolder = "typology/"
+filepath = outpath + folder + subfolder
+
+excelname = filename + ".xlsx"
+#workbook = xlsxwriter.Workbook(filepath + excelname)
+#worksheet = workbook.add_worksheet()
+
+df = pd.DataFrame(conc)
+df.to_excel(excel_writer=filepath + excelname)

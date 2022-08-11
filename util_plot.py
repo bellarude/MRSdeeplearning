@@ -17,7 +17,7 @@ from scipy.signal import savgol_filter
 # instead of passing the whole matrix a give as input already the vectors
 # y_test[:, index] == gt
 # pred[:, index] == pred
-def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sharex = 0, yscale = 0, pred_ref = 0):
+def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sharex = 0, yscale = 0, pred_ref = 0, ref_max = []):
     """
     :param fig: figure where to plot
     :param gt: ground truth vector Nx1
@@ -29,6 +29,7 @@ def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sh
     :param sharex: 1 if the x label must not be printed
     :param yscale: 1 if y-axis-lim == x-axis-lim
     :param pred_ref: plots line reference for predicted concentrations at GT limit
+    :param ref_max: external reference for max concentration to plot on y axis
     :return: regression plot GT vs. prediction with marginal distributions
     """
 
@@ -80,8 +81,10 @@ def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sh
 
 
     ax2.set_xlim(np.min(gt) - (0.05 * np.max(gt)), np.max(gt) + (0.05 * np.max(gt)))
-    if yscale:
+    if yscale == 1:
         ax2.set_ylim(np.min(gt) - (0.05 * np.max(gt)), np.max(gt) + (0.05 * np.max(gt)))
+    elif yscale == 2:
+        ax2.set_ylim(0 - (0.05 * ref_max), ref_max + (0.05 * ref_max))
     else:
         ax2.set_ylim(mP - (0.05 * MP), MP + (0.05 * MP))
 
@@ -100,8 +103,10 @@ def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sh
 
     ax3 = plt.subplot(gs[3])
     sns.distplot(y, ax=ax3, vertical=True, color='tab:olive')
-    if yscale:
+    if yscale == 1:
         ax3.set_ylim(np.min(gt) - (0.05 * np.max(gt)), np.max(gt) + (0.05 * np.max(gt)))
+    elif yscale == 2:
+        ax3.set_ylim(0 - (0.05 * ref_max), ref_max + (0.05 * ref_max))
     else:
         ax3.set_ylim(mP - (0.05 * MP), MP + (0.05 * MP))
 
@@ -139,7 +144,7 @@ def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sh
     ax1.axis('off')
     # gs.tight_layout()
 
-def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr, yscale = 0, pred_ref = 0):
+def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr, yscale = 0, pred_ref = 0, ref_max_v = []):
     """
     extends jointregression plot in its basis configuration (missing optional parameters) to a 2x4 fashion via subplot
     :param i: index from where to start plotting. it plots from i to i+8
@@ -162,16 +167,16 @@ def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr, yscale = 0, pred_ref
             ax = fig.add_subplot(spec[row, col])
             if (i == 0) or (i == 8):
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col], sharey=1, sharex=0, yscale=yscale, pred_ref=pred_ref)
+                                outer=spec[row, col], sharey=1, sharex=0, yscale=yscale, pred_ref=pred_ref, ref_max=ref_max_v[i])
             elif (i == 4) or (i == 12):
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col], sharex=1, sharey=1, yscale=yscale, pred_ref=pred_ref)
+                                outer=spec[row, col], sharex=1, sharey=1, yscale=yscale, pred_ref=pred_ref, ref_max=ref_max_v[i])
             elif (i == 5) or (i == 6) or (i == 7) or (i == 13) or (i == 14) or (i == 15):
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col], sharex=1, sharey=0, yscale=yscale, pred_ref=pred_ref)
+                                outer=spec[row, col], sharex=1, sharey=0, yscale=yscale, pred_ref=pred_ref, ref_max=ref_max_v[i])
             else:
                 jointregression(fig, gt[:, order[i]], pred[:, order[i]], metnames[order[i]], snr_v=snr,
-                                outer=spec[row, col], sharex=0, sharey=0, yscale=yscale, pred_ref=pred_ref)
+                                outer=spec[row, col], sharex=0, sharey=0, yscale=yscale, pred_ref=pred_ref, ref_max=ref_max_v[i])
 
             i += 1
 

@@ -3,6 +3,7 @@ import numpy as np
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
 import xlsxwriter
+import pickle
 
 def textMe(string):
     # needs to abilitate less secure app: https://www.google.com/settings/security/lesssecureapps
@@ -46,7 +47,6 @@ def save_scores_tab(filename, filepath, gt, pred):
     workbook.close()
     print('xlsx SAVED')
 
-
 def model_similarity(model1, model2, per_layer):
     """
     NB: to return TRUE as similarity, layers must have the same name as well
@@ -61,5 +61,12 @@ def model_similarity(model1, model2, per_layer):
     if per_layer == 1:
         for l1, l2 in zip(model1.layers, model2.layers):
             print("Layer " + str(l1) + "is identical: " + l1.get_config() == l2.get_config())
+
+
+def save_pickle(filename, obj):
+    open_file = open(filename, "wb")
+    pickle.dump(obj, open_file)
+    open_file.close()
+
 
 

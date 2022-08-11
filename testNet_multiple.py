@@ -14,7 +14,7 @@ from models import newModel
 
 regr = linear_model.LinearRegression()
 
-input1d = 0
+input1d = 1
 md_input = 0
 flat_input = 0
 
@@ -38,8 +38,8 @@ if md_input == 0:
         nlabels, w_nlabels = labelsNorm(labels)
 
         if input1d:
-            data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_TEST.mat')
-            dataset1D = data_import1D['dataset_spectra']
+            data_import1D = sio.loadmat(dest_folder + 'dataset_spectra_nw_TEST.mat')
+            dataset1D = data_import1D['dataset_spectra_nw']
             # reshaping
             dataset1D = np.transpose(dataset1D, (0, 2, 1))
             dataset1D = inputConcat1D(dataset1D)
@@ -99,10 +99,10 @@ order = [2, 0, 4, 12, 7, 6, 1, 8, 9, 14, 10, 3, 13, 15, 11, 5]  # to order metab
 
 outpath = 'C:/Users/Rudy/Desktop/DL_models/'
 folder = "water_reference/"  # "net_type/"
-subfolder = "no_wat/"  # "typology/"
+subfolder = "ResNet_no_wat/"  # "typology/"
 directory = outpath + folder + subfolder
 
-excelname = '/water_reference_NOwat_eval.xlsx'
+excelname = '/water_reference_no_wat_eval.xlsx'
 workbook = xlsxwriter.Workbook(directory + excelname)
 
 
@@ -130,12 +130,12 @@ for filename in os.listdir(directory):
 
         checkpoint_path = outpath + folder + subfolder + filename
         checkpoint_dir = os.path.dirname(checkpoint_path)
-        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp_nw')
+        model = newModel(dim='1D', type='ResNet', subtype='ResNet_fed_hp_nw')
         model.load_weights(checkpoint_path)
 
-        loss = model.evaluate(dataset2D, nlabels, verbose=2)
+        loss = model.evaluate(dataset1D, nlabels, verbose=2)
 
-        pred_abs = model.predict(dataset2D)  # normalized [0-1] absolute concentrations prediction
+        pred_abs = model.predict(dataset1D)  # normalized [0-1] absolute concentrations prediction
         pred_un = np.empty(pred_abs.shape)  # un-normalized absolute concentrations
         pred = np.empty(pred_abs.shape)  # relative un normalized concentrations (referred to water prediction)
 

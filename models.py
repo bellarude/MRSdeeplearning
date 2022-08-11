@@ -220,6 +220,7 @@ def newModel(dim, type, subtype, externalmodel=0, customloss=0):
                 outputs = lin(normD(dense(17, flatten(l3))))
 
                 lrate = 5.3954e-3
+                # lrate = 5.3954e-4 gives nicer loss curves :D
                 print('net type: ShallowELU_hp')
                 # -----------------------------------------------------------------
 
@@ -858,6 +859,21 @@ def newModel(dim, type, subtype, externalmodel=0, customloss=0):
                 lrate = 3.1938e-4
                 # -----------------------------------------------------------------
 
+            if subtype == 'ResNet_fed_hp_nw':
+                # -----------------------------------------------------------------
+                # ResNet_fed_hp
+                # -----------------------------------------------------------------
+                l1 = maxP(convBlock(15, inputs), **poolargs)
+                l2 = maxP(convBlock(40, l1), **poolargs)
+                l3 = ResidualBlock(90, 150, l2)
+                l4 = ResidualBlock(150, 230, l3)
+                l5 = ResidualBlock(140, 600, l4)
+                l6 = drop(relu(normD(dense(110, flatten(l5)))), 0.25)
+                outputs = lin(dense(16, l6))
+
+                lrate = 3.1938e-4
+                # -----------------------------------------------------------------
+
         if type == 'DeepCNN':
             datapoints = 2048
             channels = 1
@@ -896,6 +912,7 @@ def newModel(dim, type, subtype, externalmodel=0, customloss=0):
 
                 lrate = 0.003275
                 # -----------------------------------------------------------------
+
         if type == 'InceptionNet':
             datapoints = 2048
             channels = 1

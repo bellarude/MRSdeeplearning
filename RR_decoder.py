@@ -18,6 +18,7 @@ from kerastuner import HyperModel, HyperParameters, RandomSearch
 from kerastuner.tuners import BayesianOptimization
 
 import time
+import pickle
 from util import textMe
 import xlsxwriter
 
@@ -65,7 +66,7 @@ else:
 
     X_train, X_val, X_test = dataimport2D_md(folder, filenames, keyname)
 
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33_gauss/labels/'
+    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/labels/'
     filenames = ['labels_c_1.mat',
                  'labels_c_2.mat',
                  'labels_c_3.mat',
@@ -77,6 +78,10 @@ else:
 ny_train, w_y_train = labelsNorm(y_train)
 ny_val, w_y_val = labelsNorm(y_val)
 
+#RR test only 17.02.2022
+ny_train = y_train
+ny_val = y_val
+
 if flat_input:
     X_train = inputConcat2D(X_train)
     X_val = inputConcat2D(X_val)
@@ -85,58 +90,102 @@ if resize_input:
     X_train = tf.image.resize(X_train, (224, 224))
     X_val = tf.image.resize(X_val, (224, 224))
 
-def training():
-    times2train = 1
-    outpath = 'C:/Users/Rudy/Desktop/DL_models/'
-    folder = "net_type/"
-    subfolder = ""
-    net_name = "ShallowNet-2D2c-hp-miccai"
 
-    from keras.callbacks import ReduceLROnPlateau
+times2train = 1
+outpath = 'C:/Users/Rudy/Desktop/DL_models/'
+folder = "net_type/"
+subfolder = ""
+net_name = "ShallowNet-2D2c-hp-Original_labels"
 
-    tf.debugging.set_log_device_placement(True)
-    for i in range(times2train):
-        start = time.time()
+if times2train == 1:
 
-        model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
-        # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
-        checkpoint_path = outpath + folder + subfolder + net_name + "-" + str(i) + ".best.hdf5"
+    model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+    # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
+    checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
 
-        # model.load_weights(checkpoint_path)
-        checkpoint_dir = os.path.dirname(checkpoint_path)
-        mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
-                             save_weights_only=True, mode='min')
-        es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
+    # model.load_weights(checkpoint_path)
+    checkpoint_dir = os.path.dirname(checkpoint_path)
+    mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
+                         save_weights_only=True, mode='min')
+    es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
 
-        # Reduce learning rate when a metric has stopped improving
-        # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6)
+    # Reduce learning rate when a metric has stopped improving
+    # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6)
 
-        # selected channel 0 to keep only Re(spectrogram)
-        history = model.fit(X_train, ny_train,
-                              epochs=200,
-                              batch_size=50,
-                              shuffle=True,
-                              validation_data=(X_val, ny_val),
-                              validation_freq=1,
-                              callbacks=[es, mc],
-                              verbose=1)
+    # selected channel 0 to keep only Re(spectrogram)
+    history = model.fit(X_train, ny_train,
+                        epochs=200,
+                        batch_size=50,
+                        shuffle=True,
+                        validation_data=(X_val, ny_val),
+                        validation_freq=1,
+                        callbacks=[es, mc],
+                        verbose=1)
 
-        fig = plt.figure(figsize=(10, 10))
-        # summarize history for loss
-        plt.plot(history.history['loss'], label='loss')
-        plt.plot(history.history['val_loss'], label='val_loss')
-        plt.title('model losses')
-        plt.xlabel('epoch')
-        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
-
-        end = time.time()
-        elapsedtime = (end - start) / 3600  # in hours
-
-        # textMe(str(i) + '. training DONE, time -> ' + '{0:.2f}'.format(elapsedtime) + 'h, val loss->' + '{0:.5f}'.format(history.history['val_loss'][-1]) + ', epochs->' + '{0:.0f}'.format(len(history.epoch)))
-
-        # otherwise times2trainit stops the loop ove
-        if times2train == 1:
-            plt.show()
+    fig = plt.figure(figsize=(10, 10))
+    # summarize history for loss
+    plt.plot(history.history['loss'], label='loss')
+    plt.plot(history.history['val_loss'], label='val_loss')
+    plt.title('model losses')
+    plt.xlabel('epoch')
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
 
 
-training()
+    history_filename = outpath + folder + subfolder + net_name + "_history"
+    open_file = open(history_filename, "wb")
+    pickle.dump(history.history, open_file)
+    open_file.close()
+
+else: #times2train > 1 automatic training + email message
+
+    def training():
+        from keras.callbacks import ReduceLROnPlateau
+        tf.debugging.set_log_device_placement(True)
+        for i in range(times2train):
+            start = time.time()
+
+            model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+            # checkpoint_path = "/content/drive/My Drive/RR/nets models/waterNOwater/RRdecoder_ESMRMB1_d31_" + str(i) + ".best.hdf5"
+            checkpoint_path = outpath + folder + subfolder + net_name + "-" + str(i) + ".best.hdf5"
+
+            # model.load_weights(checkpoint_path)
+            checkpoint_dir = os.path.dirname(checkpoint_path)
+            mc = ModelCheckpoint(filepath=checkpoint_path, monitor='val_loss', verbose=1, save_best_only=True,
+                                 save_weights_only=True, mode='min')
+            es = EarlyStopping(monitor='val_loss', mode='min', verbose=1, patience=10)
+
+            # Reduce learning rate when a metric has stopped improving
+            # reduce_lr = ReduceLROnPlateau(monitor='val_loss', factor=0.2, patience=5, min_lr=1e-6)
+
+            # selected channel 0 to keep only Re(spectrogram)
+            history = model.fit(X_train, ny_train,
+                                  epochs=200,
+                                  batch_size=50,
+                                  shuffle=True,
+                                  validation_data=(X_val, ny_val),
+                                  validation_freq=1,
+                                  callbacks=[es, mc],
+                                  verbose=1)
+
+            fig = plt.figure(figsize=(10, 10))
+            # summarize history for loss
+            plt.plot(history.history['loss'], label='loss')
+            plt.plot(history.history['val_loss'], label='val_loss')
+            plt.title('model losses')
+            plt.xlabel('epoch')
+            plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+
+            end = time.time()
+            elapsedtime = (end - start) / 3600  # in hours
+
+            # from util import save_pickle
+            # history_filename = outpath + folder + subfolder + net_name + "_history"
+            # save_pickle(history_filename, history)
+            textMe(str(i) + '. training DONE, time -> ' + '{0:.2f}'.format(elapsedtime) + 'h, val loss->' + '{0:.5f}'.format(history.history['val_loss'][-1]) + ', epochs->' + '{0:.0f}'.format(len(history.epoch)))
+
+            # otherwise times2train it stops the loop ove
+            if times2train == 1:
+                plt.show()
+
+
+    training()

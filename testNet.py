@@ -23,12 +23,17 @@ matplotlib.rcParams['axes.labelsize'] = 15
 input1d = 0
 md_input = 0
 flat_input = 0
-test_diff_conc_bounds = 1
+test_diff_conc_bounds = 0
 reliability = 0
 
-doSave = 1
+doSave = 0
+doSavePred = 1
+
 if doSave:
     saving_spec = '_test0406'
+
+if doSavePred:
+    saving_spec = "_pred"
 
 if md_input == 0:
     dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_20/test dataset/'
@@ -119,19 +124,24 @@ else:
     nlabels, w_nlabels = labelsNorm(y_test)
     dataset2D = X_test
 
-outpath = 'C:/Users/Rudy/Desktop/DL_models/'
+outpath = "C:/Users/Rudy/Desktop/DL_models/"
 folder = "net_type/"
 subfolder = "typology/"
-net_name = "ShallowELU_hp"
+net_name = "InceptionNet-2D2c-rb"
 checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
-model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowELU_hp')
+model = newModel(dim='2D', type='ShallowCNN', subtype='SrrInception_v2')
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
 
 model.load_weights(checkpoint_path)
-loss = model.evaluate(dataset2D, nlabels, verbose=2)
 
-pred_abs = model.predict(dataset2D)  # normalized [0-1] absolute concentrations prediction
+if input1d:
+    loss = model.evaluate(dataset1D, nlabels, verbose=2)
+    pred_abs = model.predict(dataset1D)  # normalized [0-1] absolute concentrations prediction
+else:
+    loss = model.evaluate(dataset2D, nlabels, verbose=2)
+    pred_abs = model.predict(dataset2D)  # normalized [0-1] absolute concentrations prediction
+
 pred_un = np.empty(pred_abs.shape)  # un-normalized absolute concentrations
 pred = np.empty(pred_abs.shape)  # relative un normalized concentrations (referred to water prediction)
 
@@ -153,18 +163,39 @@ metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'G
             'Tau', 'Water']
 
 order = [2,0,4,12,7,6,1,8,9,14,10,3,13,15,11,5] # to order metabolites plot from good to bad
+max_range = [25.8, 5, 18.5, 14.7, 20, 2, 2.8, 5.8, 2, 0.6, 2, 3.5, 3.3, 2, 1, 1.8] # max concentration per metabolite in the simulation
 
-doSNR = 1
-doShim = 1
+doSNR = 0
+doShim = 0
+
+# ----- savings predictions
+if doSavePred:
+    #from util import save_scores_tab
+    import pandas as pd
+    filename = net_name + saving_spec
+    filepath = outpath + folder + subfolder
+
+    excelname = filename + ".xlsx"
+    #workbook = xlsxwriter.Workbook(filepath + excelname)
+    #worksheet = workbook.add_worksheet()
+
+    df = pd.DataFrame(pred_un)
+    df.to_excel(excel_writer=filepath + excelname)
+    #for col_num in range(pred_un.shape[1]):
+     #   for row_num in range(pred_un.shape[0]):
+      #      worksheet.write(row_num,colum_num,pred_un[row_num,col_num])
+
+    #workbook.close()
+    print('xlsx w/ pred SAVED')
 
 from util_plot import plotREGR2x4fromindex, plotSNR2x4fromindex, plotSHIM2x4fromindex
 
 if test_diff_conc_bounds:
-    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v, yscale = 1, pred_ref = 1)
-    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v, yscale = 1, pred_ref = 1)
+    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
+    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
 else:
-    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v)
-    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v)
+    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
+    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
 
 if doSNR:
     plotSNR2x4fromindex(0, y_test, pred, order, metnames, snr_v)

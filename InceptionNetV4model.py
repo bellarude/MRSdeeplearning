@@ -6,8 +6,7 @@
 import warnings
 # Keras Core
 from keras.layers.convolutional import MaxPooling2D, Convolution2D, AveragePooling2D
-from keras.layers import Input, Dropout, Dense, Flatten, Activation, ZeroPadding2D
-from keras.layers.normalization import BatchNormalization
+from keras.layers import Input, Dropout, Dense, Flatten, Activation, ZeroPadding2D, BatchNormalization
 from keras.layers.merge import concatenate
 from keras import regularizers
 from keras import initializers
