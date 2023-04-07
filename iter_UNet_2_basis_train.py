@@ -8,7 +8,7 @@ from keras.models import Model, load_model, Sequential
 from keras.layers import Activation, Convolution2D, MaxPooling2D, ZeroPadding2D, UpSampling2D, Reshape, Dense, Flatten, Input, BatchNormalization, ELU, Conv2D, Conv1D, Dropout, SpatialDropout2D, Concatenate
 #from keras import backend as K
 import tensorflow.keras.backend as K
-from models_to_basis import newModel
+
 from keras import layers
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 
@@ -24,48 +24,73 @@ import time
 
 # interval to train metabolites, help in debug or developing phase:
 # full range of metabolites is defined in [0, len(metnames)=17] = [0,1,2,3,4,...,16]
-met2train_start = 0
-met2train_stop = 1
+met2train_start = 2
+met2train_stop = 3
 
 same = 1 #same == 1 means having same network architecture for all metabolites
 #NB 01.01.2022: same = 0 is not supported for dualpath_net: dualpath architecture has not yet been optimized
-dualpath_net = 1
+dualpath_net = 0
+md_1D_denoising_quant = 1
 
+if md_1D_denoising_quant:
+    from models_unet_denoising import newModel
+else:
+    from models_to_basis import newModel
 
 def dataimport(index):
-    global y_train, y_val, y_test, X_train, X_val, X_test
+    global y_train, y_val, y_test, X_train, X_val, X_test, data
 
     os.environ["KERAS_BACKEND"] = "theano"
     K.set_image_data_format('channels_last')
 
+    if md_1D_denoising_quant:
+        dest_folder = 'C:/Users/Rudy/Desktop/toMartyna/toRUDY/'
 
-    dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/'
+        #data = np.load(dest_folder + 'X_noisy_data.npy')
+        data = np.load(dest_folder + 'GT_data.npy')
+        #data = np.load(dest_folder + 'pred_denoised_DL.npy')
+        scaling = np.max(data)
+        data = data / scaling
+        X_train = data[0:18000, :, :]
+        X_val = data[18000:19000, :, :]
+        X_test = data[19000:20000, :, :]  # unused
 
-    data_import = sio.loadmat(dest_folder + 'spectra_kor_wat.mat')
-    labels_import = sio.loadmat(dest_folder + 'labels_kor_' + str(index) + '_NOwat.mat')
+        labels_import = sio.loadmat(dest_folder + 'labels/labels_s_md_1D_denos_' + str(index) + '.mat')
+        labels = labels_import['labels_s']
+        scaling_labels = np.max(labels)
+        labels = labels / scaling_labels
+        y_train = labels[0:18000, :]
+        y_val = labels[18000:19000, :]
+        y_test = labels[19000:20000, :]
 
+    else:
+        dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/'
 
-    dataset = data_import['spectra_kor']
-    scaling = np.max(dataset)
+        data_import = sio.loadmat(dest_folder + 'spectra_kor_wat.mat')
+        labels_import = sio.loadmat(dest_folder + 'labels_kor_' + str(index) + '_NOwat.mat')
 
-    labels = labels_import['labels_kor_' + str(index)]
-    scaling_labels = np.max(labels)
+        dataset = data_import['spectra_kor']
+        scaling = np.max(dataset)
 
-    dataset = dataset/scaling
-    X_train = dataset[0:18000, :]
-    X_val = dataset[18000:20000, :]
-    X_test = dataset[19000:20000, :]  # unused
+        labels = labels_import['labels_kor_' + str(index)]
+        scaling_labels = np.max(labels)
 
-    #normalization try
-    labels = labels/scaling_labels
-    y_train = labels[0:18000, :]
-    y_val = labels[18000:20000, :]
-    y_test = labels[19000:20000, :]
+        dataset = dataset/scaling
+        X_train = dataset[0:18000, :]
+        X_val = dataset[18000:20000, :]
+        X_test = dataset[19000:20000, :]  # unused
+
+        #normalization try
+        labels = labels/scaling_labels
+        y_train = labels[0:18000, :]
+        y_val = labels[18000:20000, :]
+        y_test = labels[19000:20000, :]
 
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
 order = [8, 10, 1, 11, 12, 2, 13, 14, 15, 4, 16, 9, 5, 17, 3, 6, 7]
 
+#dataimport(1)
 
 for idx in range(met2train_start, met2train_stop ):
     dataimport(order[idx])
@@ -76,15 +101,15 @@ for idx in range(met2train_start, met2train_stop ):
             spec = '_dualpath_elu_nonorm'
         else:
             model = newModel(type=0)
-            spec = '_220126'
+            spec = '_230406'
     else:
-        model = newModel(met=metnames[idx], type=0)
+        model = newModel(met=metnames[order[idx]], type=0)
         spec = '_doc'
 
     times2train = 1
     output_folder = 'C:/Users/Rudy/Desktop/DL_models/'
-    subfolder = "net_type/unet/"
-    net_name = "UNet_" + metnames[idx] + spec + "_NOwat"
+    subfolder = "net_type/unet_1D_denoising_quant/"
+    net_name = "UNet_" + metnames[order[idx]] + spec + "_denoising_quant"
 
 
     for i in range(times2train):

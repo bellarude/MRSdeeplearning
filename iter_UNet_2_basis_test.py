@@ -8,7 +8,6 @@ from keras.models import Model, load_model, Sequential
 from keras.layers import Activation, Convolution2D, MaxPooling2D, ZeroPadding2D, UpSampling2D, Reshape, Dense, Flatten, Input, BatchNormalization, ELU, Conv2D, Conv1D, Dropout, SpatialDropout2D, Concatenate
 #from keras import backend as K
 import tensorflow.keras.backend as K
-from models_to_basis import newModel
 from keras import layers
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 
@@ -22,12 +21,18 @@ import pickle
 
 # interval to train metabolites, help in debug or developing phase:
 # full range of metabolites is defined in [0, len(metnames)=17] = [0,1,2,3,4,...,16]
-met2train_start = 0
-met2train_stop = 17
+met2train_start = 2
+met2train_stop = 3
 
-same = 0 #same == 1 means having same network architecture for all metabolites
+same = 1 #same == 1 means having same network architecture for all metabolites
 #NB 01.01.2022: same = 0 is not supported for dualpath_net: dualpath architecture has not yet been optimized
 dualpath_net = 0
+md_1D_denoising_quant = 1
+
+if md_1D_denoising_quant:
+    from models_unet_denoising import newModel
+else:
+    from models_to_basis import newModel
 
 doSNR=0
 doShim=0
@@ -38,20 +43,51 @@ K.set_image_data_format('channels_last')
 
 dest_folder = 'C:/Users/Rudy/Desktop/datasets/dataset_31/test dataset/'
 def dataimport(dest_folder, index):
-    labels_import = sio.loadmat(dest_folder + 'labels_kor_' + str(index) + '_TEST_NOwat.mat')
-    labels = labels_import['labels_kor_' + str(index)]
+    if md_1D_denoising_quant:
+        labels_import = sio.loadmat(dest_folder + 'labels/labels_s_md_1D_denos_' + str(index) + '.mat')
+        labels_full = labels_import['labels_s']
+        scaling_labels = np.max(labels_full)
+        labels_full = labels_full / scaling_labels
+        # y_train = labels[0:18000, :]
+        # y_val = labels[18000:19000, :]
+        y_test = labels_full[19000:20000, :]
+        labels = y_test
+    else:
+        labels_import = sio.loadmat(dest_folder + 'labels_kor_' + str(index) + '_TEST_NOwat.mat')
+        labels = labels_import['labels_kor_' + str(index)]
     return labels
 #
-#
-data_import = sio.loadmat(dest_folder + 'spectra_kor_TEST_wat.mat')
-conc_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
-snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
-readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
-#
-X_test = data_import['spectra_kor']
-conc = conc_import['labels_c'] * 64.5  # mM
-snr_v = snr_v['snr_v']
-shim_v = readme_SHIM['shim_v']
+
+if md_1D_denoising_quant:
+    dest_folder = 'C:/Users/Rudy/Desktop/toMartyna/toRUDY/'
+
+    #data = np.load(dest_folder + 'X_noisy_data.npy')
+    data = np.load(dest_folder + 'GT_data.npy')
+    #data = np.load(dest_folder + 'pred_denoised_DL.npy')
+    scaling = np.max(data)
+    data = data / scaling
+    #X_train = data[0:18000, :, :]
+    #X_val = data[18000:19000, :, :]
+    X_test = data[19000:20000, :, :]  # unused
+
+
+
+    conc1 = sio.loadmat(dest_folder + 'labels/labels_c_1.mat');
+    conc2 = sio.loadmat(dest_folder + 'labels/labels_c_2.mat');
+    conc3 = sio.loadmat(dest_folder + 'labels/labels_c_3.mat');
+    conc4 = sio.loadmat(dest_folder + 'labels/labels_c_4.mat');
+    conc = np.concatenate((conc1['labels_c'], conc2['labels_c'], conc3['labels_c'],conc4['labels_c']), axis=0)
+else:
+
+    data_import = sio.loadmat(dest_folder + 'spectra_kor_TEST_wat.mat')
+    conc_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
+    snr_v = sio.loadmat(dest_folder + 'snr_v_TEST')
+    readme_SHIM = sio.loadmat(dest_folder + 'shim_v_TEST.mat')
+    #
+    X_test = data_import['spectra_kor']
+    conc = conc_import['labels_c'] * 64.5  # mM
+    snr_v = snr_v['snr_v']
+    shim_v = readme_SHIM['shim_v']
 
 metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'GSH', 'Gly', 'Lac', 'mI', 'PE', 'sI',
             'Tau', 'Water']
@@ -74,16 +110,16 @@ for idx in range(met2train_start, met2train_stop):
             spec = '_dualpath_elu_nonorm'
         else:
             model = newModel(type=0)
-            spec = ''
+            spec = '_230406'
 
     else:
-        model = newModel(met=metnames[idx], type=0)
+        model = newModel(met=metnames[order[idx]], type=0)
         spec = '_doc'
 
     y_test = labels
     output_folder = 'C:/Users/Rudy/Desktop/DL_models/'
-    subfolder = "net_type/unet/"
-    net_name = "UNet_" + metnames[idx] + spec + "_NOwat"
+    subfolder = "net_type/unet_1D_denoising_quant/"
+    net_name = "UNet_" + metnames[order[idx]] + spec + "_denoising_quant"
 
     checkpoint_path = output_folder + subfolder + net_name + ".best.hdf5"
     model.load_weights(checkpoint_path)
@@ -103,12 +139,19 @@ for idx in range(met2train_start, met2train_stop):
 #         labels_sum[smp, idx] = np.sum(labels_list[idx][smp, :])
 
 # check areas for only 1 network (ie 1 met)!
-pred_sum = np.empty((X_test.shape[0], 17))
-labels_sum = np.empty((X_test.shape[0], 17))
-for mm in range(0, 17):
+
+
+# NB: with md_1D_denoising we do both real and imag part!
+pred_sum = np.empty((X_test.shape[0], md_1D_denoising_quant))
+labels_sum = np.empty((X_test.shape[0], md_1D_denoising_quant))
+for mm in range(0, md_1D_denoising_quant):
     for smp in range(0, X_test.shape[0]):
-        pred_sum[smp, mm] = np.sum(pred[mm][smp, :, 0])
-        labels_sum[smp, mm] = np.sum(labels_list[mm][smp, :])
+        if md_1D_denoising_quant:
+            pred_sum[smp, mm] = np.sum(pred[mm][smp, :, 0]) + np.sum(np.abs(pred[mm][smp, :, 1]))
+            labels_sum[smp, mm] = np.sum(labels_list[mm][smp, :, 0]) + np.sum(np.abs(labels_list[mm][smp, :, 1]))
+        else:
+            pred_sum[smp, mm] = np.sum(pred[mm][smp, :, 0])
+            labels_sum[smp, mm] = np.sum(labels_list[mm][smp, :])
 
 #file_name = output_folder + subfolder + "new_pred_list.pkl"
 
@@ -127,12 +170,31 @@ for mm in range(0, 17):
 # plt.plot(np.flip(y_train[100,:]))
 # plt.plot(np.flip(pred_train[100,:,0]))
 
-fig=plt.figure()
-plt.subplot(2,1,1)
+plt.figure()
+plt.subplot(3,1,1)
 plt.plot(np.flip(X_test[100,:]))
-plt.subplot(2,1,2)
-plt.plot(np.flip(y_test[100,:]))
+plt.subplot(3,1,2)
+plt.plot(np.flip(y_test[100,:,0]))
+plt.subplot(3,1,3)
 plt.plot(np.flip(pred[0][100,:,0]))
+
+# RR 2304 looping plot to explore data
+
+plt.figure()
+plt.plot(y_test[100,:,0])
+
+# plt.figure()
+# i=0
+# while True:
+#     plt.subplot(2,1,1)
+#     plt.plot(np.flip(y_test[i,:,0]))
+#     plt.subplot(2,1,2)
+#     plt.plot(np.flip(pred[0][i,:,0]))
+#     plt.waitforbuttonpress()
+#     if plt.waitforbuttonpress(timeout=0):
+#         i=i+1
+
+
 
 # we need to scale them in 0-1 otherwise plotting is a pain
 def norm_sum(input):
@@ -145,6 +207,8 @@ npred_sum = norm_sum(pred_sum)
 nlabels_sum = norm_sum(labels_sum)
 
 fig = plt.figure()
+jointregression(fig, nlabels_sum, npred_sum, metnames[0],
+                        snr_v=[])
 jointregression(fig, nlabels_sum, npred_sum, metnames[0],
                         snr_v=snr_v)
 
