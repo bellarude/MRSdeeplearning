@@ -144,7 +144,7 @@ def jointregression(fig, gt, pred, metname, snr_v=[], outer=None, sharey = 0, sh
     ax1.axis('off')
     # gs.tight_layout()
 
-def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr, yscale = 0, pred_ref = 0, ref_max_v = []):
+def plotREGR2x4fromindex(i, gt, pred, order, metnames, snr=[], yscale = 0, pred_ref = 0, ref_max_v = []):
     """
     extends jointregression plot in its basis configuration (missing optional parameters) to a 2x4 fashion via subplot
     :param i: index from where to start plotting. it plots from i to i+8

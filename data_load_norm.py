@@ -117,9 +117,9 @@ def labelsimport_md(folder, filenames, keyname):
 
     labels = np.concatenate((ls[0], ls[1], ls[2], ls[3]), axis=0)
 
-    y_train = labels[0:16000, :]
-    y_val = labels[16000:18000, :]
-    y_test = labels[18000:20000, :]
+    y_train = labels[0:17000, :]
+    y_val = labels[17000:19000, :]
+    y_test = labels[19000:20000, :]
 
     return y_train, y_val, y_test
 

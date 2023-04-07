@@ -60,6 +60,8 @@ def newModel(dim, type, subtype, externalmodel=0, customloss=0):
                         DeepCNN_fed_hp
         type =  InceptionNet
              subtype =  InceptionNet-1D
+        type =  InceptionNet_1D2c
+             subtype = v0
     """
 
     K.set_image_data_format('channels_last')
@@ -920,6 +922,70 @@ def newModel(dim, type, subtype, externalmodel=0, customloss=0):
             input_shape = (datapoints, channels)
             inputs = Input(shape=input_shape)
             if subtype == 'InceptionNet-1D':
+                # -----------------------------------------------------------------
+                # InceptionNet-1D
+                # -----------------------------------------------------------------
+                def redBlock1(inp):
+                    b0 = convBlock_ks_s(50, 3, 2, inp)
+
+                    b1 = convBlock_ks(50, 1, inp)
+                    b1 = convBlock_ks(50, 3, b1)
+                    b1 = convBlock_ks_s(50, 3, 2, b1)
+
+                    b2 = maxP(inp, **poolargs)
+
+                    oup = layers.Concatenate(axis=channel_axis)([b0, b1, b2])
+                    return oup
+
+                def redBlock2(inp):
+                    b0 = convBlock_ks(50, 1, inp)
+                    b0 = convBlock_ks_s(50, 3, 2, b0)
+
+                    b1 = convBlock_ks(50, 1, inp)
+                    b1 = convBlock_ks(50, 7, b1)
+                    b1 = convBlock_ks_s(50, 3, 2, b1)
+
+                    b2 = maxP(inp, **poolargs)
+
+                    oup = layers.Concatenate(axis=channel_axis)([b0, b1, b2])
+                    return oup
+
+                b01 = convBlock_ks(96, 9, inputs)
+                b11 = convBlock_ks(96, 7, inputs)
+                b21 = convBlock_ks(96, 5, inputs)
+                b31 = convBlock_ks(96, 3, inputs)
+                b41 = avgP(inputs, pool_size=2, strides=1)
+                b51 = convBlock_ks(96, 1, inputs)
+                b1end = redBlock1(layers.Concatenate(axis=channel_axis)([b01, b11, b21, b31, b41, b51]))
+                b02 = convBlock_ks(128, 9, b1end)
+                b12 = convBlock_ks(128, 7, b1end)
+                b22 = convBlock_ks(128, 5, b1end)
+                b32 = convBlock_ks(128, 3, b1end)
+                b42 = avgP(b1end, pool_size=2, strides=1)
+                b52 = convBlock_ks(128, 1, b1end)
+                b2end = redBlock2(layers.Concatenate(axis=channel_axis)([b02, b12, b22, b32, b42, b52]))
+                b03 = convBlock_ks(256, 9, b2end)
+                b13 = convBlock_ks(256, 7, b2end)
+                b23 = convBlock_ks(256, 5, b2end)
+                b33 = convBlock_ks(256, 3, b2end)
+                b43 = avgP(b2end, pool_size=2, strides=1)
+                b53 = convBlock_ks(256, 1, b2end)
+                b63 = convBlock_ks(256, 3, b53)
+                b73 = convBlock_ks(256, 3, b33)
+                b3end = avgP(layers.Concatenate(axis=channel_axis)([b03, b13, b23, b33, b43, b53, b63, b73]),
+                             **poolargs)
+                last = drop(flatten(b3end), 0.8)
+                outputs = lin(normD(dense(17, last)))
+
+                lrate = 2e-4
+                # -----------------------------------------------------------------
+        if type == 'InceptionNet_1D2c':
+            datapoints = 1024
+            channels = 2
+
+            input_shape = (datapoints, channels)
+            inputs = Input(shape=input_shape)
+            if subtype == 'v0':
                 # -----------------------------------------------------------------
                 # InceptionNet-1D
                 # -----------------------------------------------------------------

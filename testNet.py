@@ -8,7 +8,7 @@ import xlsxwriter
 
 from sklearn import linear_model
 from sklearn.metrics import mean_squared_error
-from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsNormREDdataset
+from data_load_norm import dataNorm, labelsNorm, ilabelsNorm, inputConcat1D, inputConcat2D, dataimport2D_md, labelsNormREDdataset, labelsimport_md
 from models import newModel
 
 import matplotlib
@@ -20,17 +20,19 @@ matplotlib.rcParams['font.size'] = 12
 matplotlib.rcParams['axes.labelsize'] = 15
 
 
-input1d = 0
-md_input = 0
+input1d = 1
+md_input = 1
 flat_input = 0
 test_diff_conc_bounds = 0
 reliability = 0
 
-doSave = 0
-doSavePred = 1
+doSave = 1 #saves scores
+doSavePred = 1 #saves predictions and labels
+doSNR = 0
+doShim = 0
 
 if doSave:
-    saving_spec = '_test0406'
+    saving_spec_scores = '_scores'
 
 if doSavePred:
     saving_spec = "_pred"
@@ -50,8 +52,10 @@ if md_input == 0:
             labels_import = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
 
             labels = labels_import['labels_c'] * 64.5
-            snr_v = snr_v['snr_v']
-            shim_v = readme_SHIM['shim_v']
+            if doSNR:
+                snr_v = snr_v['snr_v']
+            if doShim:
+                shim_v = readme_SHIM['shim_v']
 
             nlabels, w_nlabels = labelsNorm(labels)
         else:
@@ -60,8 +64,10 @@ if md_input == 0:
             labels_import = sio.loadmat(dest_folder + 'labels_c_TEST_0406.mat')
 
             labels = labels_import['labels_c'] * 64.5
-            snr_v = snr_v['snr_v']
-            shim_v = readme_SHIM['shim_v']
+            if doSNR:
+                snr_v = snr_v['snr_v']
+            if doShim:
+                shim_v = readme_SHIM['shim_v']
 
             labels_import_orig = sio.loadmat(dest_folder + 'labels_c_TEST.mat')
             labels_orig = labels_import_orig['labels_c'] * 64.5
@@ -90,47 +96,68 @@ if md_input == 0:
     datatestimport()
 else:
 
-    # pred --> output
-    # datasetX --> output_noisy
-    # labelsY --> output_gt
+    if input1d:
+        dest_folder = 'C:/Users/Rudy/Desktop/toMartyna/toRUDY/'
 
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/'
-    filenames = ['zoomedSpgram_labelsY_1.mat',
-                 'zoomedSpgram_labelsY_2.mat',
-                 'zoomedSpgram_labelsY_3.mat',
-                 'zoomedSpgram_labelsY_4.mat']
-    keyname = 'output_gt'
+        # data = np.load(dest_folder + 'X_noisy_data.npy')
+        data = np.load(dest_folder + 'GT_data.npy')
+        # data = np.load(dest_folder + 'pred_denoised_DL.npy')
+        scaling = np.max(data)
+        data = data / scaling
+        X_train = data[0:17000, :, :]
+        X_val = data[17000:19000, :, :]
+        X_test = data[19000:20000, :, :]  # unused
 
-    X_train, X_val, X_test = dataimport2D_md(folder, filenames, keyname)
+        folder = 'C:/Users/Rudy/Desktop/toMartyna/toRUDY/labels/'
+        filenames = ['labels_c_1.mat',
+                     'labels_c_2.mat',
+                     'labels_c_3.mat',
+                     'labels_c_4.mat']
+        keyname = 'labels_c'
+        y_train, y_val, y_test = labelsimport_md(folder, filenames, keyname)
+        nlabels, w_nlabels = labelsNorm(y_test)
+        dataset1D = X_test
+    else:
+        # pred --> output
+        # datasetX --> output_noisy
+        # labelsY --> output_gt
 
-    snr_v = sio.loadmat(folder + 'snr_v')
-    readme_SHIM = sio.loadmat(folder + 'shim_v.mat')
-    snr_v_tot = snr_v['snr_v']
-    shim_v_tot = readme_SHIM['shim_v']
-    snr_v = snr_v_tot[18000:20000, :]
-    shim_v = shim_v_tot[18000:20000, :]
+        folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/'
+        filenames = ['zoomedSpgram_labelsY_1.mat',
+                     'zoomedSpgram_labelsY_2.mat',
+                     'zoomedSpgram_labelsY_3.mat',
+                     'zoomedSpgram_labelsY_4.mat']
+        keyname = 'output_gt'
 
-    folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/labels/'
-    filenames = ['labels_c_1.mat',
-                 'labels_c_2.mat',
-                 'labels_c_3.mat',
-                 'labels_c_4.mat']
-    keyname = 'labels_c'
+        X_train, X_val, X_test = dataimport2D_md(folder, filenames, keyname)
 
-    y_train, y_val, y_test = labelsimport_md(folder, filenames, keyname)
+        if doSNR:
+            snr_v = sio.loadmat(folder + 'snr_v')
+            snr_v_tot = snr_v['snr_v']
+            snr_v = snr_v_tot[19000:20000, :]
+        if doShim:
+            readme_SHIM = sio.loadmat(folder + 'shim_v.mat')
+            shim_v_tot = readme_SHIM['shim_v']
+            shim_v = shim_v_tot[19000:20000, :]
 
+        folder = 'C:/Users/Rudy/Desktop/datasets/dataset_33/labels/'
+        filenames = ['labels_c_1.mat',
+                     'labels_c_2.mat',
+                     'labels_c_3.mat',
+                     'labels_c_4.mat']
+        keyname = 'labels_c'
 
-
-    nlabels, w_nlabels = labelsNorm(y_test)
-    dataset2D = X_test
+        y_train, y_val, y_test = labelsimport_md(folder, filenames, keyname)
+        nlabels, w_nlabels = labelsNorm(y_test)
+        dataset2D = X_test
 
 outpath = "C:/Users/Rudy/Desktop/DL_models/"
 folder = "net_type/"
-subfolder = "typology/"
-net_name = "InceptionNet-2D2c-rb"
+subfolder = "decoder_1D_denoising_quant//"
+net_name = "Inception-Net-1D2c-v0_trained_on_GT_iter_0"
 checkpoint_path = outpath + folder + subfolder + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
-model = newModel(dim='2D', type='ShallowCNN', subtype='SrrInception_v2')
+model = newModel(dim='1D', type='InceptionNet_1D2c', subtype='v0')
 # model = newModel(dim='2D', type='ShallowCNN', subtype='ShallowInception_fact_v2')
 
 model.load_weights(checkpoint_path)
@@ -165,8 +192,7 @@ metnames = ['tCho', 'NAAG', 'NAA', 'Asp', 'tCr', 'GABA', 'Glc', 'Glu', 'Gln', 'G
 order = [2,0,4,12,7,6,1,8,9,14,10,3,13,15,11,5] # to order metabolites plot from good to bad
 max_range = [25.8, 5, 18.5, 14.7, 20, 2, 2.8, 5.8, 2, 0.6, 2, 3.5, 3.3, 2, 1, 1.8] # max concentration per metabolite in the simulation
 
-doSNR = 0
-doShim = 0
+
 
 # ----- savings predictions
 if doSavePred:
@@ -179,8 +205,15 @@ if doSavePred:
     #workbook = xlsxwriter.Workbook(filepath + excelname)
     #worksheet = workbook.add_worksheet()
 
-    df = pd.DataFrame(pred_un)
-    df.to_excel(excel_writer=filepath + excelname)
+    df1 = pd.DataFrame(pred_un)
+    df2 = pd.DataFrame(y_test)
+    # create an Excel writer object
+    writer = pd.ExcelWriter(filepath +excelname)
+
+    # write each dataframe to a separate sheet in the Excel file
+    df1.to_excel(writer, sheet_name='predictions')
+    df2.to_excel(writer, sheet_name='ground_truth')
+    writer.save()
     #for col_num in range(pred_un.shape[1]):
      #   for row_num in range(pred_un.shape[0]):
       #      worksheet.write(row_num,colum_num,pred_un[row_num,col_num])
@@ -190,16 +223,24 @@ if doSavePred:
 
 from util_plot import plotREGR2x4fromindex, plotSNR2x4fromindex, plotSHIM2x4fromindex
 
-if test_diff_conc_bounds:
-    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
-    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
+if doSNR:
+    if test_diff_conc_bounds:
+        plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr=snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
+        plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr=snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
+    else:
+        plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr=snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
+        plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr=snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
 else:
-    plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
-    plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr_v, yscale = 2, pred_ref = 1, ref_max_v = max_range)
+    if test_diff_conc_bounds:
+        plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr=[], yscale = 2, pred_ref = 1, ref_max_v = max_range)
+        plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr=[], yscale = 2, pred_ref = 1, ref_max_v = max_range)
+    else:
+        plotREGR2x4fromindex(0, y_test, pred, order, metnames, snr=[], yscale = 2, pred_ref = 1, ref_max_v = max_range)
+        plotREGR2x4fromindex(8, y_test, pred, order, metnames, snr=[], yscale = 2, pred_ref = 1, ref_max_v = max_range)
 
 if doSNR:
-    plotSNR2x4fromindex(0, y_test, pred, order, metnames, snr_v)
-    plotSNR2x4fromindex(8, y_test, pred, order, metnames, snr_v)
+    plotSNR2x4fromindex(0, y_test, pred, order, metnames, snr=snr_v)
+    plotSNR2x4fromindex(8, y_test, pred, order, metnames, snr=snr_v)
 
 if doShim:
     if doSNR:
@@ -225,7 +266,7 @@ if doShim:
 # ----- savings of scores
 if doSave:
     from util import save_scores_tab
-    filename = net_name + saving_spec
+    filename = net_name + saving_spec_scores
     filepath = outpath + folder + subfolder
     save_scores_tab(filename, filepath, y_test, pred)
 
