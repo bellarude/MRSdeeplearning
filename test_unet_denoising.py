@@ -123,20 +123,20 @@ saveDir = 'C:/Users/Rudy/Documents/WMD/PhD_Bern/01_Project 2 - Deep Learning/dat
 #np.save(saveDir + 'X_noisy_data.npy', X_noisy_data_)
 
 
-output_folder = 'C:/Users/Rudy/Documents/WMD/PhD_Bern/01_Project 2 - Deep Learning/Perugia_denosing/denoising_unet/'
+#output_folder = 'C:/Users/Rudy/Documents/WMD/PhD_Bern/01_Project 2 - Deep Learning/Perugia_denosing/denoising_unet/'
 #net_name = "RR_1e4_learRate_fullDataset"   # RR_1e4_learRate_fullDataset.best
-net_name = "RR_default" #netowrk weights
+net_name = "RR_default" #network weights
 '''
 RR_1e3_learRate_fullDataset
 RR_1e4_learRate_32_batch_fullDataset
 
 '''
-folderWeights = "'C:/Users/Rudy/Documents/WMD/PhD_Bern/04_MRSdeeplearning/denoising_unet_weights/"
-checkpoint_path = folderWeights + net_name + ".best.hdf5" #import pretrained weights
+folderWeights = "C:/Users/Rudy/Documents/WMD/PhD_Bern/04_MRSdeeplearning/denoising_unet_weights/"
+checkpoint_path = folderWeights + net_name + ".best.hdf5"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
 modelUnet.load_weights(checkpoint_path)
-scale_f = 1e2; #Rudy: empirical scaling to normalize new in-vivo test data to the training data
+scale_f = 1e2 #Rudy: empirical scaling to normalize new in-vivo test data to the training data
 X_P= X_P * scale_f
 #loss = modelUnet.evaluate(X_test_full, Y_test_full, verbose=2)
 pred = modelUnet.predict(X_P)
