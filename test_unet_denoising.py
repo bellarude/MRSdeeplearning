@@ -125,13 +125,14 @@ saveDir = 'C:/Users/Rudy/Documents/WMD/PhD_Bern/01_Project 2 - Deep Learning/dat
 
 output_folder = 'C:/Users/Rudy/Documents/WMD/PhD_Bern/01_Project 2 - Deep Learning/Perugia_denosing/denoising_unet/'
 #net_name = "RR_1e4_learRate_fullDataset"   # RR_1e4_learRate_fullDataset.best
-net_name = "RR_default"
+net_name = "RR_default" #netowrk weights
 '''
 RR_1e3_learRate_fullDataset
 RR_1e4_learRate_32_batch_fullDataset
 
 '''
-checkpoint_path = output_folder + net_name + ".best.hdf5"
+folderWeights = "'C:/Users/Rudy/Documents/WMD/PhD_Bern/04_MRSdeeplearning/denoising_unet_weights/"
+checkpoint_path = folderWeights + net_name + ".best.hdf5" #import pretrained weights
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
 modelUnet.load_weights(checkpoint_path)
