@@ -1,11 +1,11 @@
 # MRSdeeplearning
 
 *Author*: Rudy Rizzo \
-*Contact*: rudy.rizzo@insel.ch \
+*Contact*: rurizzo@med.umich.edu \
 *Affiliation #1*: MR Methodogy group, University of Bern, Bern, Switzerland \
 *Affiliation #2*: Institute of Interventional Neuroradiology, Bern University Hospital, Bern, Switzerland \
 *Affiliation #3*: Translational Imaging Center, sitem-insel, Bern, Switzerland \
-*Last update*: 6 June 2022
+*Last update*: 20 February 2024
 
 <!-- buttons -->
 <p align="left">
